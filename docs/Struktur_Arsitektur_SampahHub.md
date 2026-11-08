@@ -1,271 +1,403 @@
-# PANDUAN STRUKTUR DAN ARSITEKTUR PROYEK SAMPAHHUB
+# PANDUAN STRUKTUR, ARSITEKTUR, ERD, DAN ALUR SISTEM SAMPAHHUB
 
-Dokumen ini mendokumentasikan rancangan arsitektur dan struktur folder lengkap untuk **Backend** (Express.js + TypeScript) dan **Frontend** (Next.js 16 App Router + Tailwind CSS) pada aplikasi **SampahHub**, sesuai dengan spesifikasi produk pada [Dokumentasi_SampahHub.md](./Dokumentasi_SampahHub.md).
+Dokumen ini merupakan panduan arsitektur teknis lengkap untuk aplikasi **SampahHub** yang mencakup:
+* **Arsitektur Perangkat Lunak & Struktur Folder**
+* **Diagram Relasi Entitas Database (ERD)**
+* **Alur Sistem Autentikasi Terpisah (*Dual-Gateway Auth*)**
+* **Alur Peran Pengguna (*User Flow* untuk Warga, Mitra, dan Admin)**
+* **Alur Kerja Internal Sistem (*Matching Engine System Flow*)**
 
 ---
 
-## 1. Arsitektur Backend (`backend/`)
+## 1. Nama & Pola Arsitektur Resmi
 
-Backend menggunakan pola **Layered Architecture (Controller – Service – Model/Database)** yang terorganisasi secara **modular per domain bisnis**. Pemisahan ini memastikan logika bisnis yang kompleks (terutama *Matching Engine*) terisolasi dari kontroler HTTP dan mudah diuji.
+SampahHub dirancang mengikuti standar industri rekayasa perangkat lunak modern:
 
-### 1.1 Diagram Pohon Folder Backend
+1. **Arsitektur Backend:**
+   > **Modular Layered Architecture** *(Package-by-Feature)*
+   
+   Kode dikelompokkan berdasarkan modul domain fungsional (`auth`, `waste`, `recyclers`, `matching`, `admin`). Setiap modul bersifat otonom (*High Cohesion*) dan memiliki ketergantungan minimal dengan modul lain (*Low Coupling*), sehingga mencegah efek domino error ke seluruh sistem.
 
-```text
-backend/
-├── prisma/
-│   └── schema.prisma                # Skema database PostgreSQL (Bab 11 Dokumentasi)
-├── src/
-│   ├── config/                      # Konfigurasi aplikasi & database
-│   │   ├── database.ts              # Inisialisasi client database
-│   │   └── env.ts                   # Manajemen environment variable terpusat
-│   ├── middlewares/                 # Middleware Express
-│   │   ├── auth.middleware.ts       # Verifikasi token autentikasi (JWT)
-│   │   ├── role.middleware.ts       # Guard hak akses peran (user, recycler, admin)
-│   │   ├── validate.middleware.ts   # Validasi request body (Zod)
-│   │   └── error.middleware.ts      # Global error handler
-│   ├── modules/                     # Modular per domain bisnis
-│   │   ├── auth/                    # Modul Registrasi & Login
-│   │   │   ├── auth.controller.ts
-│   │   │   ├── auth.service.ts
-│   │   │   └── auth.routes.ts
-│   │   ├── waste/                   # Modul Master Kategori Sampah
-│   │   │   ├── waste.controller.ts
-│   │   │   ├── waste.service.ts
-│   │   │   └── waste.routes.ts
-│   │   ├── recyclers/               # Modul Profil Pengelola & Material
-│   │   │   ├── recycler.controller.ts
-│   │   │   ├── recycler.service.ts
-│   │   │   └── recycler.routes.ts
-│   │   ├── matching/                # INTI FITUR: Mesin Pencocokan Multi-Material
-│   │   │   ├── matching.controller.ts
-│   │   │   ├── matching.routes.ts
-│   │   │   └── services/            # Sub-layanan logika algoritma pencocokan
-│   │   │       ├── matching.service.ts       # Orchestrator alur pencocokan
-│   │   │       ├── eligibility.service.ts    # Filter kelayakan material & min kuantitas
-│   │   │       ├── combination.service.ts    # Penyusunan alternatif 1..N pengelola
-│   │   │       ├── distance.service.ts       # Kalkulasi jarak rute & titik singgah
-│   │   │       └── scoring.service.ts        # Normalisasi skor (E, D, S) & bobot prioritas
-│   │   └── admin/                   # Modul Verifikasi & Audit Platform
-│   │       ├── admin.controller.ts
-│   │       ├── admin.service.ts
-│   │       └── admin.routes.ts
-│   ├── utils/                       # Utilitas & helper pendukung
-│   │   ├── haversine.ts             # Fungsi hitung jarak garis lurus koordinat bumi
-│   │   └── api-response.ts          # Standarisasi format response JSON API
-│   ├── types/
-│   │   └── index.ts                 # Definisi tipe TypeScript backend
-│   ├── app.ts                       # Setup middleware Express & pendaftaran rute
-│   └── server.ts                    # Entry point listener server
-├── .env.example
-├── package.json
-└── tsconfig.json
+2. **Pola Desain di Setiap Modul Backend:**
+   > **Controller – Service – Repository Pattern** *(3-Tier Layered Pattern)*
+   * **Controller Layer:** Menangani HTTP request, validasi skema payload via Zod, dan mengembalikan HTTP response JSON.
+   * **Service Layer:** Otak logika bisnis (*business logic*), orkestrasi algoritma pencocokan multi-material, kalkulasi jarak, dan pembobotan skor.
+   * **Repository Layer:** Satu-satunya lapisan yang berkomunikasi langsung dengan database PostgreSQL (Prisma Client).
+
+3. **Prinsip Keamanan Akun (Isolasi Fisik Database):**
+   > **Physical Separation of Privileged Accounts** *(Tabel `users` vs `admins` Dipisah Secara Fisik)*
+   
+   Untuk menjamin **keamanan absolut (*Zero Trust*)** dan mencegah risiko *Privilege Escalation* (kebocoran akun admin akibat bug query atau celah *Mass Assignment* di form pendaftaran publik), akun **Warga Masyarakat** dan akun **Internal Admin** dipisahkan secara fisik ke tabel berbeda:
+   * **Tabel `users`:** Khusus akun masyarakat/warga. Memiliki form registrasi publik dan login publik.
+   * **Tabel `admins`:** Khusus staf internal/pengawas platform. **TIDAK MEMILIKI REGISTRASI PUBLIK**. Akun hanya bisa dibuat melalui *database seeder* internal atau oleh superadmin.
+
+4. **Arsitektur Frontend:**
+   > **Feature-Grouped App Router Architecture** *(Next.js 16 + React 19 + Tailwind CSS)*
+   
+   Menggunakan *Route Groups* `(...)` untuk memisahkan layout antarmuka publik, form alur pencocokan warga, dan panel dashboard privat.
+
+---
+
+## 2. Entity-Relationship Diagram (ERD)
+
+Berikut adalah rancangan relasi tabel database PostgreSQL pada SampahHub sesuai dengan file [prisma/schema.prisma](../backend/prisma/schema.prisma):
+
+```mermaid
+erDiagram
+    users ||--o{ matching_sessions : "membuat (opsional/nullable)"
+    admins {
+        string id PK
+        string name
+        string email UK
+        string password
+        string role
+        datetime created_at
+        datetime updated_at
+    }
+    users {
+        string id PK
+        string name
+        string email UK
+        string password
+        datetime created_at
+        datetime updated_at
+    }
+    recyclers ||--o{ recycler_materials : "menerima"
+    recyclers {
+        string id PK
+        string name
+        string management_type
+        string address
+        decimal latitude
+        decimal longitude
+        string contact
+        string verification_status
+        boolean is_demo
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+    waste_categories ||--o{ recycler_materials : "ditetapkan pada"
+    waste_categories ||--o{ matching_items : "dikategorikan"
+    waste_categories {
+        string id PK
+        string name
+        string unit
+        string description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+    recycler_materials ||--o{ price_histories : "mencatat riwayat"
+    recycler_materials ||--o{ matching_assignments : "dialokasikan"
+    recycler_materials {
+        string id PK
+        string recycler_id FK
+        string category_id FK
+        decimal price
+        string unit
+        decimal min_quantity
+        string quality_requirements
+        boolean is_available
+        datetime price_updated_at
+        datetime created_at
+        datetime updated_at
+    }
+    matching_sessions ||--o{ matching_items : "memuat input"
+    matching_sessions ||--o{ matching_results : "menghasilkan"
+    matching_sessions {
+        string id PK
+        string user_id FK "nullable (guest mode)"
+        decimal latitude
+        decimal longitude
+        string priority
+        decimal search_radius
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+    matching_items ||--o{ matching_assignments : "dipetakan"
+    matching_items {
+        string id PK
+        string session_id FK
+        string category_id FK
+        decimal quantity
+        string unit
+        string condition
+        datetime created_at
+        datetime updated_at
+    }
+    matching_results ||--o{ matching_assignments : "berisi rincian"
+    matching_results {
+        string id PK
+        string session_id FK
+        int rank
+        decimal total_value
+        decimal total_distance
+        int total_stops
+        decimal economy_score
+        decimal distance_score
+        decimal stops_score
+        decimal final_score
+        string unmatched_summary
+        datetime created_at
+    }
+    matching_assignments {
+        string id PK
+        string result_id FK
+        string matching_item_id FK
+        string recycler_material_id FK
+        decimal quantity_snapshot
+        decimal price_snapshot
+        decimal estimated_value
+        datetime created_at
+    }
+    price_histories {
+        string id PK
+        string recycler_material_id FK
+        decimal old_price
+        decimal new_price
+        datetime changed_at
+    }
 ```
 
 ---
 
-### 1.2 Rincian Fungsi Tiap File & Folder Backend
+## 3. Alur Sistem Autentikasi Terpisah (*Dual-Gateway Auth*)
 
-#### A. Konfigurasi (`src/config/`)
-| File | Fungsi |
-| :--- | :--- |
-| `env.ts` | Membaca dan memvalidasi environment variable seperti `PORT`, `DATABASE_URL`, dan `JWT_SECRET`. |
-| `database.ts` | Menyiapkan koneksi client database (Prisma / PostgreSQL) agar dapat di-reuse oleh service. |
-
-#### B. Middlewares (`src/middlewares/`)
-| File | Fungsi |
-| :--- | :--- |
-| `auth.middleware.ts` | Mengecek validitas token JWT pada header `Authorization` sebelum request diproses. |
-| `role.middleware.ts` | Memastikan hanya role tertentu (misal: hanya `admin` atau `recycler`) yang dapat mengakses rute sensitif. |
-| `validate.middleware.ts` | Memvalidasi integritas payload input menggunakan skema Zod sebelum masuk ke controller. |
-| `error.middleware.ts` | Menangkap seluruh unhandled error di Express dan mengembalikan response error JSON yang aman dan seragam. |
-
-#### C. Modul Domain (`src/modules/`)
-* **Modul `auth/`:**
-  * `auth.controller.ts`: Menerima request HTTP untuk registrasi dan login.
-  * `auth.service.ts`: Logika enkripsi password, query akun, dan pembuatan token JWT.
-  * `auth.routes.ts`: Rute `POST /api/auth/register` dan `POST /api/auth/login`.
-* **Modul `waste/`:**
-  * `waste.controller.ts`: Handler HTTP untuk data kategori sampah.
-  * `waste.service.ts`: Mengambil daftar kategori resmi (botol PET, kardus, jelantah, kertas, logam) dari database.
-  * `waste.routes.ts`: Rute `GET /api/waste/categories`.
-* **Modul `recyclers/`:**
-  * `recycler.controller.ts`: Handler untuk direktori pengelola dan detail profil.
-  * `recycler.service.ts`: Query data pengelola aktif beserta ketentuan harga material yang diterima.
-  * `recycler.routes.ts`: Rute `GET /api/recyclers` dan `GET /api/recyclers/:id`.
-* **Modul `matching/` (Logika Inti Produk):**
-  * `matching.controller.ts`: Handler request pencocokan multi-material dari pengguna.
-  * `matching.routes.ts`: Rute `POST /api/matching`.
-  * `services/matching.service.ts`: Mengorkestrasi 4 sub-servis (Eligibility $\rightarrow$ Combination $\rightarrow$ Distance $\rightarrow$ Scoring) lalu mengurutkan alternatif hasil.
-  * `services/eligibility.service.ts`: Memeriksa apakah status pengelola aktif, kategori diterima, kuantitas memenuhi `min_quantity`, dan kualitas material sesuai (Bab 9.3).
-  * `services/combination.service.ts`: Menyusun skenario pembagian material ke 1 pengelola tunggal atau partisi 2..N pengelola (Bab 9.5).
-  * `services/distance.service.ts`: Menghitung jarak pengguna ke titik-titik pengelola dan total rute antar-titik singgah (Bab 9.6).
-  * `services/scoring.service.ts`: Menghitung skor nilai ekonomi ($E$), kedekatan jarak ($D$), efisiensi titik ($S$), serta pembobotan sesuai prioritas (*Balanced*, *Highest Value*, *Nearest*, *Fewest Stops*) (Bab 9.7).
-* **Modul `admin/`:**
-  * `admin.controller.ts`: Handler tindakan administratif (verifikasi/penolakan mitra).
-  * `admin.service.ts`: Memperbarui status verifikasi pengelola (`pending`, `verified`, `rejected`) di database.
-  * `admin.routes.ts`: Rute `POST /api/admin/recyclers/:id/verify`.
-
-#### D. Utilitas & Database
-| File / Folder | Fungsi |
-| :--- | :--- |
-| `src/utils/haversine.ts` | Mengimplementasikan rumus trigonometri Haversine untuk estimasi jarak garis lurus berbasis koordinat latitude & longitude. |
-| `src/utils/api-response.ts` | Helper `sendSuccess` dan `sendError` agar format response JSON selalu seragam: `{ status, message, data }`. |
-| `prisma/schema.prisma` | Definisi skema tabel database PostgreSQL lengkap sesuai BAB 11: `users`, `recyclers`, `waste_categories`, `recycler_materials`, `matching_sessions`, `matching_items`, `matching_results`, `matching_assignments`, dan `price_histories`. |
-
----
-
-## 2. Arsitektur Frontend (`frontend/`)
-
-Frontend dibangun menggunakan **Next.js 16 App Router** dengan pengelompokan rute menggunakan fitur **Route Groups `(...)`** agar layout masing-masing bagian (Publik, Alur Matching, Dashboard Mitra, Dashboard Admin) terisolasi dengan rapi tanpa mengubah URL di browser.
-
-### 2.1 Diagram Pohon Folder Frontend
-
-```text
-frontend/
-├── app/
-│   ├── (auth)/                      # Rute Autentikasi
-│   │   ├── login/page.tsx           # Halaman Form Login
-│   │   ├── register/page.tsx        # Halaman Form Registrasi (Pilihan: Warga / Mitra)
-│   │   └── layout.tsx               # Layout kartu auth terpusat
-│   ├── (public)/                    # Rute Terbuka untuk Publik
-│   │   ├── recyclers/
-│   │   │   ├── page.tsx             # Direktori Pencarian Pengelola
-│   │   │   └── [id]/page.tsx        # Halaman Detail Profil & Daftar Harga Pengelola
-│   │   ├── categories/page.tsx      # Edukasi Jenis Sampah & Syarat Pemilahan
-│   │   └── layout.tsx               # Layout publik dengan navigasi umum
-│   ├── (matching)/                  # Alur Mesin Pencocokan (Masyarakat)
-│   │   ├── match/
-│   │   │   ├── page.tsx             # Form Input Multi-Material & Pilihan Prioritas
-│   │   │   └── results/[sessionId]/ # Halaman Hasil Rekomendasi & Rincian Rute
-│   │   │       └── page.tsx
-│   │   └── layout.tsx               # Layout khusus alur matching
-│   ├── (dashboard)/                 # Area Terproteksi (Dashboard Pengguna)
-│   │   ├── recycler/                # Panel Mitra Pengelola Sampah
-│   │   │   ├── layout.tsx           # Sidebar navigasi pengelola
-│   │   │   ├── page.tsx             # Overview metrik pengelola
-│   │   │   ├── profile/page.tsx     # Pengaturan alamat & koordinat peta pengelola
-│   │   │   └── materials/page.tsx   # Kelola material diterima, harga, & min kuantitas
-│   │   └── admin/                   # Panel Administrator SampahHub
-│   │       ├── layout.tsx           # Sidebar navigasi admin
-│   │       ├── page.tsx             # Ringkasan sistem & audit
-│   │       ├── verifications/       # Antrean verifikasi pengelola baru
-│   │       │   └── page.tsx
-│   │       ├── categories/page.tsx  # CRUD Master Kategori Sampah
-│   │       └── price-audit/page.tsx # Pemantauan tanggal pembaruan harga pengelola
-│   ├── globals.css                  # Konfigurasi Tailwind CSS
-│   ├── layout.tsx                   # Root HTML & body layout
-│   └── page.tsx                     # Landing Page Utama SampahHub
-├── components/                      # Komponen UI Reusable
-│   ├── ui/                          # Komponen atomik (Button, Badge, Input, Card)
-│   ├── maps/                        # Komponen peta Leaflet (OpenStreetMap)
-│   ├── matching/                    # Form row multi-material & selector prioritas
-│   ├── layout/                      # Navbar, Sidebar, Footer
-│   └── shared/                      # DemoBanner ("PERINGATAN: DATA DEMO")
-├── lib/                             # Utilitas & Client Lib
-│   ├── api-client.ts                # Fetch wrapper terpusat untuk memanggil backend
-│   ├── constants.ts                 # Label tipe pengelola, opsi prioritas, bobot skor
-│   └── utils.ts                     # Formatter angka rupiah & format jarak (km/m)
-├── types/
-│   └── index.ts                     # Definisi kontrak tipe data TypeScript frontend
-├── .env.example
-├── package.json
-└── tsconfig.json
-```
-
----
-
-### 2.2 Rincian Fungsi Tiap File & Folder Frontend
-
-#### A. Rute Aplikasi (`app/`)
-| Rute | File | Fungsi |
-| :--- | :--- | :--- |
-| `/` | `app/page.tsx` | Landing page utama pengenalan proposisi nilai SampahHub, langkah kerja, dan call-to-action (CTA). |
-| `/login` | `app/(auth)/login/page.tsx` | Antarmuka masuk akun bagi masyarakat, mitra pengelola, atau admin. |
-| `/register` | `app/(auth)/register/page.tsx` | Formulir pendaftaran akun dengan pemilihan jenis peran. |
-| `/recyclers` | `app/(public)/recyclers/page.tsx` | Direktori pencarian mitra pengelola dengan filter tipe institusi (Bank Sampah, Pengepul, TPS3R, Industri). |
-| `/recyclers/:id` | `app/(public)/recyclers/[id]/page.tsx` | Profil lengkap satu pengelola, kontak, lokasi, dan daftar harga beli materialnya. |
-| `/categories` | `app/(public)/categories/page.tsx` | Halaman edukasi jenis sampah daur ulang, kisaran harga pasar, dan tips pemilahan. |
-| `/match` | `app/(matching)/match/page.tsx` | **Fitur Utama Warga:** Form dinamis untuk input 1–5 jenis sampah, kuantitas, satuan, lokasi GPS, dan 4 pilihan prioritas pencarian. |
-| `/match/results/:sessionId` | `app/(matching)/match/results/[sessionId]/page.tsx` | **Halaman Hasil:** Menampilkan perbandingan kartu alternatif rekomendasi, rincian tempat singgah (stops), rincian pendapatan rupiah, dan skor. |
-| `/recycler` | `app/(dashboard)/recycler/page.tsx` | Beranda ringkasan status penerimaan dan status verifikasi mitra. |
-| `/recycler/profile` | `app/(dashboard)/recycler/profile/page.tsx` | Form pengaturan profil usaha, alamat, dan pin koordinat peta. |
-| `/recycler/materials` | `app/(dashboard)/recycler/materials/page.tsx` | Form pengaturan harga per satuan, batas minimum setoran, dan syarat kualitas material. |
-| `/admin` | `app/(dashboard)/admin/page.tsx` | Dashboard ringkasan metriks platform. |
-| `/admin/verifications` | `app/(dashboard)/admin/verifications/page.tsx` | Tabel verifikasi calon mitra pengelola (`pending` $\rightarrow$ `verified` / `rejected`). |
-| `/admin/categories` | `app/(dashboard)/admin/categories/page.tsx` | Manajemen master data kategori sampah dan satuan baku. |
-| `/admin/price-audit` | `app/(dashboard)/admin/price-audit/page.tsx` | Pantauan pengelola yang belum memperbarui harga melewati batas waktu tertentu. |
-
-#### B. Komponen Reusable (`components/`)
-| Folder | Komponen | Fungsi |
-| :--- | :--- | :--- |
-| `components/shared/` | `DemoBanner.tsx` | Menampilkan banner wajib transparansi: **"DATA DEMO / SIMULASI"** pada MVP sesuai instruksi BAB 14 & 16. |
-| `components/layout/` | `Navbar.tsx` | Header navigasi global dengan link rute cepat dan status user. |
-| `components/ui/` | `Badge.tsx` | Label status kecil (contoh: badge `DEMO`, status `Terverifikasi`, `Menunggu Verifikasi`). |
-| `components/matching/` | `WasteItemInput.tsx` | Satu baris komponen input material (dropdown kategori, input angka, auto-satuan, catatan mutu, tombol hapus baris). |
-| `components/matching/` | `PrioritySelector.tsx` | Komponen radio/card interaktif untuk memilih 4 mode prioritas (*Balanced*, *Highest Value*, *Nearest*, *Fewest Stops*). |
-| `components/maps/` | `LeafletMap.tsx` | Komponen penampil peta OpenStreetMap untuk rute setoran (di-load via dynamic import tanpa SSR). |
-
-#### C. Library & Tipe Data (`lib/` & `types/`)
-| File | Fungsi |
-| :--- | :--- |
-| `lib/api-client.ts` | Wrapper pemanggilan `fetch` terpusat yang otomatis menangani base URL backend dan header JSON. |
-| `lib/constants.ts` | Menyimpan label statis tipe pengelola (`bank_sampah`, `pengepul`, dll.), opsi prioritas, dan batas kuantitas. |
-| `lib/utils.ts` | Helper format mata uang (`formatRupiah`), jarak (`formatDistance`), dan format tanggal Indonesia. |
-| `types/index.ts` | Interface TypeScript untuk entitas data: `User`, `Recycler`, `WasteCategory`, `RecyclerMaterial`, `MatchingAlternative`, `StopAllocation`. |
-
----
-
-## 3. Alur Komunikasi Data Antara Frontend & Backend
+Untuk menjamin tidak ada konflik antara akun warga biasa dan admin, sistem menggunakan **dua pintu masuk autentikasi yang terisolasi total**:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Warga as Masyarakat / Pengguna
-    participant FE as Frontend (Next.js)
-    participant API as Backend API (Express)
-    participant Engine as Matching Engine (Services)
-    participant DB as PostgreSQL (Prisma)
+    actor Warga as Warga Masyarakat
+    actor Admin as Admin Internal
+    participant FE as Frontend Web
+    participant AuthAPI as Public Auth API (/api/auth)
+    participant AdminAPI as Internal Admin API (/api/admin)
+    participant UserDB as Tabel [users]
+    participant AdminDB as Tabel [admins]
 
-    Warga->>FE: Isi form sampah (PET 2kg, Kardus 3kg) & pilih prioritas
-    FE->>API: POST /api/matching (items, koordinat, prioritas)
-    API->>DB: Query pengelola aktif & ketentuan harga material
-    DB-->>API: Data pengelola & material
-    API->>Engine: Jalankan executeMatching(requestData)
-    Engine->>Engine: 1. Filter kelayakan (EligibilityService)
-    Engine->>Engine: 2. Susun alternatif 1..N titik (CombinationService)
-    Engine->>Engine: 3. Hitung estimasi jarak (DistanceService via Haversine)
-    Engine->>Engine: 4. Hitung skor terbobot & ranking (ScoringService)
-    Engine-->>API: Daftar alternatif terurut berdasarkan skor
-    API-->>FE: Response JSON { alternatives, sessionId }
-    FE->>Warga: Tampilkan kartu rekomendasi alternatif & rincian tempat singgah
+    Note over Warga,UserDB: PINTU 1: Autentikasi Publik Warga
+    Warga->>FE: Buka /register atau /login warga
+    FE->>AuthAPI: POST /api/auth/register atau /login (email, password)
+    AuthAPI->>UserDB: Query & Simpan hanya ke tabel users
+    UserDB-->>AuthAPI: Data user warga
+    AuthAPI-->>FE: Kembalikan JWT Token Warga (role: user)
+    FE-->>Warga: Masuk ke akun warga (Bisa simpan riwayat matching)
+
+    Note over Admin,AdminDB: PINTU 2: Autentikasi Internal Admin
+    Admin->>FE: Buka halaman rahasia /admin/login
+    FE->>AdminAPI: POST /api/admin/login (email, password)
+    AdminAPI->>AdminDB: Query hanya ke tabel admins (terisolasi)
+    AdminDB-->>AdminAPI: Data admin internal
+    AdminAPI-->>FE: Kembalikan JWT Token Admin (role: admin)
+    FE-->>Admin: Masuk ke Dashboard Administrator (/admin)
+```
+
+> 🔒 **Keunggulan Keamanan:**
+> * Jika ada pengguna yang mencoba mendaftar dengan email admin di form registrasi warga, ia hanya terdaftar di tabel `users` dan **secara fisik tidak memiliki akses apa pun ke tabel `admins`**.
+> * Endpoint `/api/admin/login` memverifikasi kredensial ke tabel `admins`, sehingga akun warga tidak akan pernah bisa login ke panel admin.
+
+---
+
+## 4. Alur Peran Pengguna (*User Flows*)
+
+### 4.1 Alur Warga Masyarakat Biasa (`user`)
+Warga masyarakat memiliki fleksibilitas penuh untuk menggunakan SampahHub melalui dua pilihan:
+
+```mermaid
+flowchart TD
+    StartWarga([Warga Membuka SampahHub]) --> ModeChoice{Pilih Akses}
+    
+    ModeChoice -->|Tanpa Daftar / Instan| GuestMode[1. Mode Tamu / Guest]
+    ModeChoice -->|Punya Akun / Daftar| UserMode[2. Mode Terdaftar / Logged In]
+
+    GuestMode --> InputStep[Input 1-5 Sampah, Kuantitas & Lokasi GPS]
+    UserMode --> InputStep
+
+    InputStep --> PriorityStep[Pilih Prioritas: Balanced / Value / Jarak / Stops]
+    PriorityStep --> SubmitMatch[Tekan Tombol 'Cocokkan Sampah']
+    
+    SubmitMatch --> ResultView[Halaman Hasil Rekomendasi]
+    ResultView --> AltCompare[Bandingkan Alternatif #1, #2, dst.]
+    
+    AltCompare --> CheckStops[Lihat Rincian Rute & Tempat Singgah]
+    CheckStops --> ContactRecycler[Hubungi Kontak Pengelola Sebelum Berangkat]
+    ContactRecycler --> PhysicalDropoff[Setor Sampah Secara Fisik & Terima Uang]
+
+    UserMode -.->|Otomatis Tersimpan| SaveHistory[(Tersimpan di Riwayat Akun)]
+```
+
+#### Rincian Langkah Warga:
+1. **Pilihan Akses (Guest vs Logged In):**
+   * **Mode Tamu (*Guest*):** Pengguna yang baru pertama kali berkunjung tidak dipaksa mendaftar. Dapat langsung mencoba fitur matching secara instan.
+   * **Mode Terdaftar (*Logged In*):** Pengguna login ke akunnya agar riwayat pencarian dan rencana setoran dapat diakses kembali di kemudian hari.
+2. **Input Material Sampah:** Memilih 1 sampai 5 jenis sampah daur ulang (PET, kardus, jelantah, kertas, logam), memasukkan kuantitas, memilih satuan resmi, serta mencantumkan catatan kondisi (misal: *"Kering, botol bersih tanpa tutup"*).
+3. **Penentuan Lokasi:** Menekan tombol *Gunakan GPS Saya* untuk mendeteksi koordinat otomatis atau menggunakan koordinat referensi.
+4. **Pemilihan Prioritas:** Memilih salah satu dari 4 opsi pembobotan:
+   * **Balanced (Seimbang - Default):** Bobot 50% Nilai Rupiah, 30% Jarak, 20% Efisiensi Titik.
+   * **Highest Value (Nilai Tertinggi):** Bobot 70% Nilai Rupiah, 20% Jarak, 10% Titik Singgah.
+   * **Nearest Location (Lokasi Terdekat):** Bobot 20% Nilai Rupiah, 60% Jarak, 20% Titik Singgah.
+   * **Fewest Stops (Titik Paling Sedikit):** Bobot 20% Nilai Rupiah, 20% Jarak, 60% Titik Singgah (ideal 1 tempat).
+5. **Menerima Rekomendasi:** Sistem menyajikan daftar kartu alternatif yang telah diperingkatkan dari skor tertinggi.
+6. **Melihat Rencana Setoran & Hubungi Pengelola:** Memeriksa pembagian barang (misal: kardus ke Bank Sampah A, jelantah ke Pengepul B), estimasi pendapatan rupiah, dan rute perjalanan. Pengguna menghubungi nomor kontak mitra untuk konfirmasi sebelum berangkat.
+
+---
+
+### 4.2 Alur Mitra Pengelola Sampah (`recycler`)
+Mitra adalah pihak penerima/pembeli sampah daur ulang (Bank Sampah, Pengepul, TPS3R, atau Industri Daur Ulang):
+
+1. **Pendaftaran Profil Usaha:** Mendaftarkan profil unit pengelolaan sampah di platform.
+2. **Penentuan Klasifikasi:** Memilih tipe unit: `bank_sampah`, `pengepul`, `tps3r`, atau `recycler_industry`.
+3. **Pengisian Lokasi & Kontak:** Memasukkan alamat operasional, nomor kontak WhatsApp/telepon, serta pinpoint koordinat peta latitude & longitude.
+4. **Pengaturan Ketentuan Penerimaan Material (`recycler_materials`):**
+   * Memilih material yang diterima dari master kategori.
+   * Menentukan harga beli per satuan (misal: Rp3.000 / kg).
+   * Menentukan batas minimum kuantitas setoran (misal: minimal 2 kg).
+   * Menjelaskan syarat mutu (misal: *"Kardus kering dan diikat rapi"*).
+   * Mengatur status ketersediaan (*Tersedia / Penuh*).
+5. **Proses Verifikasi:** Profil masuk ke antrean verifikasi admin sebelum tampil aktif di hasil pencocokan publik.
+6. **Pembaruan Harga Berkala:** Memperbarui harga beli mengikuti perkembangan pasar daur ulang. Sistem otomatis mencatat timestamp `price_updated_at` untuk menjamin kesegaran informasi (*price freshness*).
+
+---
+
+### 4.3 Alur Administrator Platform (`admin`)
+Admin adalah staf internal pengawas kualitas platform:
+
+1. **Login Internal:** Masuk melalui rute khusus `/admin` yang terhubung langsung ke tabel `admins`.
+2. **Verifikasi Calon Mitra:**
+   * Memeriksa data pendaftaran baru pada `/admin/verifications`.
+   * Menyetujui (*Approve*) data yang valid $\rightarrow$ status berubah menjadi `verified`.
+   * Menolak (*Reject*) data yang fiktif atau tidak lengkap.
+3. **Manajemen Master Data Kategori:** Menambah kategori baru atau memperbarui satuan baku di `/admin/categories`.
+4. **Audit Transparansi & Data DEMO:** Memastikan data simulasi/uji coba diberi tanda `is_demo = true` sehingga badge **DATA DEMO / SIMULASI** selalu muncul di antarmuka publik demi transparansi.
+5. **Audit Pembaruan Harga:** Memantau mitra yang belum memperbarui harga dalam jangka waktu lama di `/admin/price-audit`.
+
+---
+
+## 5. Alur Kerja Internal Sistem (*Matching Engine System Flow*)
+
+Bagian ini menjelaskan alur komputasi backend saat memproses pencocokan multi-material:
+
+```mermaid
+flowchart TD
+    ReqIn([Request POST /api/matching]) --> Step1[1. Validasi Schema Payload via Zod]
+    Step1 -->|Gagal| Err400[Response 400 Bad Request]
+    
+    Step1 -->|Valid| Step2[2. Query Pengelola Aktif via RecyclerRepository]
+    Step2 --> Step3[3. Penyaringan Kelayakan via EligibilityService]
+    
+    subgraph EligibilityFilter["Aturan Kelayakan Tiap Material (Bab 9.3)"]
+        E1{Status Mitra Aktif?} -->|Ya| E2{Kategori Diterima & Tersedia?}
+        E2 -->|Ya| E3{Satuan User Cocok?}
+        E3 -->|Ya| E4{Kuantitas User >= Min Setoran?}
+        E4 -->|Ya| EPass[Material Memenuhi Syarat]
+        E1 -->|Tidak| EFail[Material Ditolak / Belum Cocok]
+        E2 -->|Tidak| EFail
+        E3 -->|Tidak| EFail
+        E4 -->|Tidak| EFail
+    end
+    
+    Step3 --> EligibilityFilter
+    EPass --> Step4[4. Pembentukan Alternatif Kombinasi via CombinationService]
+    
+    subgraph Combinations["Penyusunan Skenario (Bab 9.5)"]
+        C1[Skenario 1 Titik Singgah - Single Recycler]
+        C2[Skenario 2..N Titik Singgah - Multi-Recycler Partition]
+    end
+    
+    Step4 --> Combinations
+    C1 & C2 --> Step5[5. Kalkulasi Jarak Rute via DistanceService - Rumus Haversine]
+    Step5 --> Step6[6. Normalisasi Nilai E, D, S & Bobot Skor via ScoringService]
+    
+    Step6 --> Step7[7. Pengurutan Ranking Berdasarkan Final Score Tertinggi]
+    Step7 --> Step8[8. Simpan Sesi & Snapshot Harga via MatchingRepository]
+    Step8 --> ResOut([Response JSON { sessionId, alternatives }])
 ```
 
 ---
 
-## 4. Cara Menjalankan Project (Local Development)
+### Rumus & Metrik Perhitungan Internal
 
-### 4.1 Menjalankan Backend
+#### 1. Estimasi Jarak Garis Lurus (Haversine Formula)
+$$\Delta\text{lat} = \text{lat}_2 - \text{lat}_1, \quad \Delta\text{lon} = \text{lon}_2 - \text{lon}_1$$
+$$a = \sin^2\left(\frac{\Delta\text{lat}}{2}\right) + \cos(\text{lat}_1)\cos(\text{lat}_2)\sin^2\left(\frac{\Delta\text{lon}}{2}\right)$$
+$$d = 2 \cdot R \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1 - a}\right) \quad (\text{Radius bumi } R = 6.371\text{ km})$$
+
+#### 2. Normalisasi 3 Komponen Skor (0–100)
+* **Skor Nilai Ekonomi ($E$):**
+  $$E = 100 \times \frac{\text{Total Nilai Rupiah Alternatif}}{\text{Nilai Rupiah Maksimal di Sesi Tersebut}}$$
+* **Skor Kedekatan Jarak ($D$):**
+  $$D = 100 \times \max\left(0, 1 - \frac{\text{Total Jarak Rute}}{\text{Radius Referensi (30 km)}}\right)$$
+* **Skor Efisiensi Titik Singgah ($S$):**
+  $$S = \frac{100}{\text{Jumlah Titik Pengelola yang Dikunjungi}}$$
+
+#### 3. Pembobotan Skor Akhir Sesuai Prioritas
+* **Balanced (Default):** $\text{Score} = (0.50 \times E) + (0.30 \times D) + (0.20 \times S)$
+* **Highest Value:** $\text{Score} = (0.70 \times E) + (0.20 \times D) + (0.10 \times S)$
+* **Nearest Location:** $\text{Score} = (0.20 \times E) + (0.60 \times D) + (0.20 \times S)$
+* **Fewest Stops:** $\text{Score} = (0.20 \times E) + (0.20 \times D) + (0.60 \times S)$
+
+#### 4. Persistensi Snapshot Harga (`MatchingAssignment`)
+Hasil pencocokan **wajib menyimpan snapshot harga per satuan dan kuantitas saat pencarian dilakukan**. Ini mencegah perubahan nilai estimasi pada riwayat pengguna lama jika suatu saat mitra memperbarui harga belinya di database.
+
+---
+
+## 6. Struktur File & Modul Kode
+
+### 6.1 Backend (`backend/`)
+```text
+backend/
+├── prisma/schema.prisma                # Skema DB PostgreSQL (users, admins, recyclers, dll.)
+├── src/
+│   ├── config/ (database.ts, env.ts)
+│   ├── middlewares/ (auth, role, validate, error)
+│   ├── modules/
+│   │   ├── auth/ (auth.controller, auth.service, auth.repository, auth.routes)
+│   │   ├── waste/ (waste.controller, waste.service, waste.repository, waste.routes)
+│   │   ├── recyclers/ (recycler.controller, recycler.service, recycler.repository, recycler.routes)
+│   │   ├── matching/ (matching.controller, matching.service, matching.repository, matching.routes, services/*)
+│   │   └── admin/ (admin.controller, admin.service, admin.repository, admin.routes)
+│   ├── utils/ (haversine.ts, api-response.ts)
+│   ├── types/index.ts
+│   ├── app.ts
+│   └── server.ts
+```
+
+### 6.2 Frontend (`frontend/`)
+```text
+frontend/
+├── app/
+│   ├── (auth)/ (login, register)
+│   ├── (public)/ (recyclers, recyclers/[id], categories)
+│   ├── (matching)/ (match, match/results/[sessionId])
+│   ├── (dashboard)/ (recycler/*, admin/*)
+│   ├── layout.tsx & page.tsx
+├── components/ (ui, maps, matching, layout, shared)
+├── lib/ (api-client.ts, constants.ts, utils.ts)
+└── types/index.ts
+```
+
+---
+
+## 7. Cara Menjalankan Project (Local Development)
+
+### 7.1 Menjalankan Backend API
 ```bash
 cd backend
 npm install
 npm run dev
 ```
-* Server berjalan di: `http://localhost:5000`
-* Cek status server: `http://localhost:5000/api/health`
-* Pengecekan tipe TypeScript:
-  ```bash
-  npx tsc --noEmit
-  ```
+* **Endpoint API:** `http://localhost:5000`
+* **Health Check:** `http://localhost:5000/api/health`
+* **Type Checking:** `npx tsc --noEmit`
 
-### 4.2 Menjalankan Frontend
+### 7.2 Menjalankan Frontend Web
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-* Aplikasi berjalan di: `http://localhost:3000`
-* Pengecekan tipe TypeScript:
-  ```bash
-  npx tsc --noEmit
-  ```
-
+* **Aplikasi Web:** `http://localhost:3000`
+* **Type Checking:** `npx tsc --noEmit`

@@ -1,5 +1,5 @@
 // Prisma Schema untuk SampahHub
-// Sesuai dengan spesifikasi rancangan database BAB 11 Dokumentasi_SampahHub.md
+// Arsitektur Pemisahan Fisik Akun (Public Users vs Internal Admins vs Partner Recyclers)
 
 datasource db {
   provider = "postgresql"
@@ -8,12 +8,6 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-}
-
-enum Role {
-  user
-  recycler
-  admin
 }
 
 enum ManagementType {
@@ -36,24 +30,36 @@ enum Priority {
   fewest_stops
 }
 
+// 1. Akun Masyarakat / Warga (Public User)
 model User {
   id               String            @id @default(uuid())
   name             String
   email            String            @unique
   password         String
-  role             Role              @default(user)
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
-  recyclerProfiles Recycler[]
   matchingSessions MatchingSession[]
 
   @@map("users")
 }
 
+// 2. Akun Internal Staff / Administrator (Terpisah Fisik - Tanpa Registrasi Publik)
+model Admin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("admin") // superadmin, moderator, auditor
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+// 3. Profil Mitra Pengelola Sampah (Bank Sampah, Pengepul, TPS3R, Industri)
 model Recycler {
   id                 String             @id @default(uuid())
-  userId             String?            @map("user_id")
   name               String
   managementType     ManagementType     @map("management_type")
   address            String
@@ -66,12 +72,12 @@ model Recycler {
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  user               User?              @relation(fields: [userId], references: [id])
   materials          RecyclerMaterial[]
 
   @@map("recyclers")
 }
 
+// 4. Master Kategori Sampah Daur Ulang
 model WasteCategory {
   id          String             @id @default(uuid())
   name        String
@@ -87,6 +93,7 @@ model WasteCategory {
   @@map("waste_categories")
 }
 
+// 5. Ketentuan Penerimaan Material oleh Pengelola
 model RecyclerMaterial {
   id                  String               @id @default(uuid())
   recyclerId          String               @map("recycler_id")
@@ -109,9 +116,10 @@ model RecyclerMaterial {
   @@map("recycler_materials")
 }
 
+// 6. Sesi Pencocokan (Bisa Guest user_id = null, atau Logged in user)
 model MatchingSession {
   id           String           @id @default(uuid())
-  userId       String?          @map("user_id")
+  userId       String?          @map("user_id") // Nullable untuk pencarian tamu publik
   latitude     Decimal          @db.Decimal(10, 7)
   longitude    Decimal          @db.Decimal(10, 7)
   priority     Priority         @default(balanced)
@@ -127,6 +135,7 @@ model MatchingSession {
   @@map("matching_sessions")
 }
 
+// 7. Item Sampah yang Dimasukkan pada Satu Sesi (Maksimal 5)
 model MatchingItem {
   id          String               @id @default(uuid())
   sessionId   String               @map("session_id")
@@ -144,6 +153,7 @@ model MatchingItem {
   @@map("matching_items")
 }
 
+// 8. Alternatif Hasil Rekomendasi (Rank 1, 2, dst)
 model MatchingResult {
   id               String               @id @default(uuid())
   sessionId        String               @map("session_id")
@@ -164,6 +174,7 @@ model MatchingResult {
   @@map("matching_results")
 }
 
+// 9. Snapshot Penempatan Material ke Pengelola Tertentu
 model MatchingAssignment {
   id                 String           @id @default(uuid())
   resultId           String           @map("result_id")
@@ -181,6 +192,7 @@ model MatchingAssignment {
   @@map("matching_assignments")
 }
 
+// 10. Audit Riwayat Perubahan Harga
 model PriceHistory {
   id                 String           @id @default(uuid())
   recyclerMaterialId String           @map("recycler_material_id")
@@ -192,4 +204,3 @@ model PriceHistory {
 
   @@map("price_histories")
 }
-

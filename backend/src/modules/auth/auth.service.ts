@@ -1,12 +1,20 @@
+import { AuthRepository } from './auth.repository.js';
+
 export class AuthService {
+  private authRepository: AuthRepository;
+
+  constructor() {
+    this.authRepository = new AuthRepository();
+  }
+
   public async register(payload: any) {
-    // TODO: Hash password & simpan ke database
-    return { id: 'placeholder-user-id', ...payload };
+    // TODO: Hash password & simpan melalui repository
+    return this.authRepository.createUser(payload);
   }
 
   public async login(payload: any) {
-    // TODO: Validasi kredensial & sign JWT
-    return { token: 'placeholder-jwt-token' };
+    // TODO: Cari user via repository & verifikasi password
+    const user = await this.authRepository.findByEmail(payload.email);
+    return { token: 'placeholder-jwt-token', user };
   }
 }
-

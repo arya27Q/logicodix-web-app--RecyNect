@@ -1,14 +1,18 @@
 import { Recycler } from '../../types/index.js';
+import { RecyclerRepository } from './recycler.repository.js';
 
 export class RecyclerService {
+  private recyclerRepository: RecyclerRepository;
+
+  constructor() {
+    this.recyclerRepository = new RecyclerRepository();
+  }
+
   public async getAll(): Promise<Recycler[]> {
-    // TODO: Query ke database tabel recyclers
-    return [];
+    return this.recyclerRepository.findActiveRecyclers();
   }
 
   public async getById(id: string): Promise<Recycler | null> {
-    // TODO: Query recycler by id beserta relasi recyclers_materials
-    return null;
+    return this.recyclerRepository.findById(id);
   }
 }
-

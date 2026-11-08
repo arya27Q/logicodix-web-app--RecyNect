@@ -9,6 +9,11 @@ export class AdminController {
     this.adminService = new AdminService();
   }
 
+  public login = async (req: Request, res: Response) => {
+    const result = await this.adminService.login(req.body);
+    return sendSuccess(res, result, 'Login admin internal berhasil');
+  };
+
   public verifyRecycler = async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { status } = req.body;

@@ -1,7 +1,23 @@
-export type Role = 'user' | 'recycler' | 'admin';
 export type ManagementType = 'bank_sampah' | 'pengepul' | 'tps3r' | 'recycler_industry';
 export type VerificationStatus = 'pending' | 'verified' | 'rejected';
 export type MatchingPriority = 'balanced' | 'highest_value' | 'nearest' | 'fewest_stops';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Admin {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface WasteCategory {
   id: string;
@@ -25,7 +41,6 @@ export interface RecyclerMaterial {
 
 export interface Recycler {
   id: string;
-  userId?: string;
   name: string;
   managementType: ManagementType;
   address: string;

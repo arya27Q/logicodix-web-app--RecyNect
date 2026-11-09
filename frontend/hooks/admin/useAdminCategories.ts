@@ -182,3 +182,4 @@ export function useAdminCategories(initialData = INITIAL_CATEGORIES) {
     toggleActive,
   };
 }
+

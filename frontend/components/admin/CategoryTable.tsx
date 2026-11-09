@@ -205,3 +205,4 @@ export const CategoryTable: React.FC<CategoryTableProps> = ({
     </div>
   );
 };
+

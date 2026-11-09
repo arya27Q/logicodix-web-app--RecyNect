@@ -194,3 +194,4 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     </div>
   );
 };
+

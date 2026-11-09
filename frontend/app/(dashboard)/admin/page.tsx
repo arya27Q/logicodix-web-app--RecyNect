@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAdminStats } from '@/hooks/admin/useAdminStats';
 import { useAdminVerifications } from '@/hooks/admin/useAdminVerifications';
 import { PriceAuditTable } from '@/components/admin/PriceAuditTable';
+import { AdminAnalyticsCharts } from '@/components/admin/AdminAnalyticsCharts';
 import {
   Users,
   ShieldAlert,
@@ -12,9 +13,8 @@ import {
   TrendingUp,
   ArrowRight,
   Boxes,
-  CheckCircle2,
+  MapPin,
   Calendar,
-  Sparkles,
 } from 'lucide-react';
 
 export default function AdminOverviewPage() {
@@ -76,7 +76,7 @@ export default function AdminOverviewPage() {
             className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition"
           >
             <Boxes className="w-4 h-4" />
-            <span>Kelola Kategori</span>
+            <span>Kelola Kategori Master</span>
           </Link>
         </div>
       </div>
@@ -105,94 +105,113 @@ export default function AdminOverviewPage() {
         ))}
       </div>
 
-      {/* Main Grid: Pending Verifications & Price Audit Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Quick Action Verifications Queue */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Antrean Verifikasi Mitra Terbaru
-              </h2>
-              <p className="text-xs text-slate-500">
-                Pendaftaran pabrik, bank sampah, dan pengepul baru.
-              </p>
-            </div>
-            <Link
-              href="/admin/verifications"
-              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
-            >
-              <span>Lihat Semua ({pendingItems.length})</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+      {/* ============================================================== */}
+      {/* SECTION 1: Native Next.js / React SVG Analytics Charts         */}
+      {/* ============================================================== */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+            Analitik Performa & Komposisi Sampah
+          </h2>
+          <span className="text-xs text-slate-500 font-medium">Diperbarui otomatis secara real-time</span>
+        </div>
+        <AdminAnalyticsCharts />
+      </div>
 
-          <div className="space-y-3">
-            {pendingItems.slice(0, 3).map((item) => (
-              <div
-                key={item.id}
-                className="card-surface rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 font-mono">
-                      {item.businessType}
-                    </span>
-                    <h3 className="font-extrabold text-slate-900 text-sm mt-1">
-                      {item.businessName}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {item.city} • Penanggung Jawab: {item.ownerName}
-                    </p>
-                  </div>
+      {/* ============================================================== */}
+      {/* SECTION 2: Pending Verifications Queue (Spacious Layout)       */}
+      {/* ============================================================== */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+              Antrean Verifikasi Mitra Terbaru
+            </h2>
+            <p className="text-xs text-slate-500">
+              Pendaftaran pabrik, bank sampah, dan pengepul baru yang memerlukan verifikasi berkas legalitas.
+            </p>
+          </div>
+          <Link
+            href="/admin/verifications"
+            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+          >
+            <span>Lihat Semua Pengajuan ({pendingItems.length})</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {pendingItems.slice(0, 3).map((item) => (
+            <div
+              key={item.id}
+              className="card-surface rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-4"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 font-mono">
+                    {item.businessType}
+                  </span>
                   <span className="text-[11px] font-mono text-slate-400">
                     {item.submissionDate}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => reject(item.id)}
-                    className="px-3 py-1.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition"
-                  >
-                    Tolak
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => approve(item.id)}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-2xs transition"
-                  >
-                    Verifikasi Cepat
-                  </button>
+                <h3 className="font-extrabold text-slate-900 text-sm">
+                  {item.businessName}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-1">
+                  NIB: {item.regNumber}
+                </p>
+                <div className="flex items-start gap-1.5 text-xs text-slate-600 mt-2">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                  <span className="line-clamp-1">{item.address}, {item.city}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Right Column: Engine Status & Price Audit Table */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Peringatan Anomali Harga
-              </h2>
-              <p className="text-xs text-slate-500">
-                Pengecekan deviasi harga di atas batas kewajaran pasar.
-              </p>
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => reject(item.id)}
+                  className="px-3 py-1.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold transition"
+                >
+                  Tolak
+                </button>
+                <button
+                  type="button"
+                  onClick={() => approve(item.id)}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-2xs transition"
+                >
+                  Verifikasi
+                </button>
+              </div>
             </div>
-            <Link
-              href="/admin/price-audit"
-              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
-            >
-              <span>Selengkapnya</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <PriceAuditTable />
+          ))}
         </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* SECTION 3: Price Audit Alerts (Full Width Container Below)     */}
+      {/* ============================================================== */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+              Peringatan Anomali Harga Pasar
+            </h2>
+            <p className="text-xs text-slate-500">
+              Pengawasan harga material daur ulang yang menyimpang di atas ambang batas kewajaran wilayah.
+            </p>
+          </div>
+          <Link
+            href="/admin/price-audit"
+            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+          >
+            <span>Buka Audit Lengkap</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Full Width Price Audit Table */}
+        <PriceAuditTable />
       </div>
     </div>
   );

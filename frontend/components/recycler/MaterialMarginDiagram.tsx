@@ -220,3 +220,4 @@ export const MaterialMarginDiagram: React.FC = () => {
     </div>
   );
 };
+

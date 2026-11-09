@@ -278,3 +278,4 @@ export const UserImpactCharts: React.FC = () => {
     </div>
   );
 };
+

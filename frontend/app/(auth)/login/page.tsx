@@ -235,18 +235,27 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Mitra Recycler Secondary Switch (Cleanly Separated) */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span className="flex items-center gap-1.5">
+        {/* Mitra Recycler & Admin Secondary Switch (Cleanly Separated) */}
+        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5">
             <Store className="w-3.5 h-3.5 text-amber-600" />
-            <span>Pengelola / Bank Sampah?</span>
-          </span>
-          <Link
-            href="/recycler"
-            className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
-          >
-            Portal Mitra Pengelola ➔
-          </Link>
+            <span>Mitra Pengelola?</span>
+            <Link
+              href="/recycler"
+              className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-1"
+            >
+              Portal Mitra →
+            </Link>
+          </div>
+          <div className="flex items-center gap-1.5 sm:border-l sm:border-slate-200 sm:pl-3">
+            <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
+            <Link
+              href="/admin/login"
+              className="font-semibold text-slate-600 hover:text-slate-900 hover:underline"
+            >
+              Akses Administrator →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

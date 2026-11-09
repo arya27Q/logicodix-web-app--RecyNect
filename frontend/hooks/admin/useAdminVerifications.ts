@@ -54,6 +54,7 @@ const DEFAULT_VERIFICATIONS: PendingVerification[] = [
 export function useAdminVerifications(initialData = DEFAULT_VERIFICATIONS) {
   const [items, setItems] = useState<PendingVerification[]>(initialData);
   const [filterType, setFilterType] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const approve = (id: string) => {
@@ -69,8 +70,13 @@ export function useAdminVerifications(initialData = DEFAULT_VERIFICATIONS) {
   };
 
   const filteredItems = items.filter((item) => {
-    if (filterType === 'all') return true;
-    return item.businessType === filterType;
+    const matchesFilter = filterType === 'all' || item.businessType === filterType;
+    const matchesSearch =
+      item.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.regNumber.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
   });
 
   const pendingCount = items.filter((i) => i.status === 'pending').length;
@@ -81,6 +87,8 @@ export function useAdminVerifications(initialData = DEFAULT_VERIFICATIONS) {
     pendingCount,
     filterType,
     setFilterType,
+    searchQuery,
+    setSearchQuery,
     selectedId,
     setSelectedId,
     approve,

@@ -254,12 +254,21 @@ export default function AdminLoginPage() {
               Registrasi Staf
             </Link>
           </div>
-          <Link
-            href="/login"
-            className="text-slate-400 hover:text-slate-600 transition"
-          >
-            Portal Warga / Pengguna Biasa →
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/recycler/login"
+              className="text-slate-400 hover:text-slate-600 transition"
+            >
+              Mitra Pengelola →
+            </Link>
+            <span className="text-slate-300">•</span>
+            <Link
+              href="/login"
+              className="text-slate-400 hover:text-slate-600 transition"
+            >
+              Portal Warga →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

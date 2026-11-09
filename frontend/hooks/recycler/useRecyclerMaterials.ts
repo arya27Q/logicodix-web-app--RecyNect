@@ -54,12 +54,24 @@ const DEFAULT_MATERIALS: RecyclerMaterial[] = [
     qualityRequirements: 'Dipipihkan, bebas dari sisa cairan manis',
     isAccepting: false,
   },
+  {
+    id: 'mat-5',
+    name: 'Besi Tua & Scrap Konstruksi',
+    category: 'Logam',
+    pricePerUnit: 5200,
+    unit: 'kg',
+    minQuantity: 20,
+    qualityRequirements: 'Logam padat, bebas dari semen/kotoran batu berlebih',
+    isAccepting: true,
+  },
 ];
 
 export function useRecyclerMaterials(initialData = DEFAULT_MATERIALS) {
   const [materials, setMaterials] = useState<RecyclerMaterial[]>(initialData);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<RecyclerMaterial | null>(null);
 
   const toggleAccepting = (id: string) => {
     setMaterials((prev) =>
@@ -79,6 +91,48 @@ export function useRecyclerMaterials(initialData = DEFAULT_MATERIALS) {
     );
   };
 
+  const saveMaterial = (data: Partial<RecyclerMaterial>) => {
+    if (editingMaterial) {
+      setMaterials((prev) =>
+        prev.map((m) =>
+          m.id === editingMaterial.id
+            ? ({ ...m, ...data } as RecyclerMaterial)
+            : m
+        )
+      );
+    } else {
+      const newMat: RecyclerMaterial = {
+        id: `mat-${Date.now().toString().slice(-6)}`,
+        name: data.name || 'Material Baru',
+        category: data.category || 'Lainnya',
+        pricePerUnit: data.pricePerUnit || 1000,
+        unit: data.unit || 'kg',
+        minQuantity: data.minQuantity || 1,
+        qualityRequirements: data.qualityRequirements || '',
+        isAccepting: true,
+      };
+      setMaterials((prev) => [newMat, ...prev]);
+    }
+    setIsModalOpen(false);
+    setEditingMaterial(null);
+  };
+
+  const deleteMaterial = (id: string) => {
+    if (confirm('Hapus material ini dari ketentuan penerimaan gudang Anda?')) {
+      setMaterials((prev) => prev.filter((m) => m.id !== id));
+    }
+  };
+
+  const openCreate = () => {
+    setEditingMaterial(null);
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (mat: RecyclerMaterial) => {
+    setEditingMaterial(mat);
+    setIsModalOpen(true);
+  };
+
   const filteredMaterials = materials.filter(
     (m) =>
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,9 +150,15 @@ export function useRecyclerMaterials(initialData = DEFAULT_MATERIALS) {
     setSearchQuery,
     isSaving,
     setIsSaving,
+    isModalOpen,
+    setIsModalOpen,
+    editingMaterial,
+    openCreate,
+    openEdit,
+    saveMaterial,
+    deleteMaterial,
     toggleAccepting,
     updatePrice,
     updateMinQuantity,
   };
 }
-

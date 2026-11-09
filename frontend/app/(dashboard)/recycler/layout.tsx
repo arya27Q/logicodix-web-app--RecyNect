@@ -1,21 +1,34 @@
+'use client';
+
+import React, { useState } from 'react';
+import { RecyclerSidebar } from '@/components/recycler/RecyclerSidebar';
+import { RecyclerHeader } from '@/components/recycler/RecyclerHeader';
+import { useRecyclerIncoming } from '@/hooks/recycler/useRecyclerIncoming';
+
 export default function RecyclerDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { pendingCount } = useRecyclerIncoming();
+
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar Pengelola */}
-      <aside className="w-64 bg-slate-900 text-white p-6 space-y-4">
-        <h2 className="text-lg font-bold text-emerald-400">Panel Pengelola</h2>
-        <nav className="flex flex-col space-y-2 text-sm text-slate-300">
-          <a href="/recycler" className="hover:text-white">Dashboard</a>
-          <a href="/recycler/profile" className="hover:text-white">Profil & Lokasi</a>
-          <a href="/recycler/materials" className="hover:text-white">Ketentuan Material</a>
-        </nav>
-      </aside>
-      <main className="flex-1 p-8 bg-slate-50">{children}</main>
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar Navigation */}
+      <RecyclerSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        pendingDeliveriesCount={pendingCount}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <RecyclerHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
-

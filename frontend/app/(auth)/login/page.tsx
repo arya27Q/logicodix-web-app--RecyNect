@@ -241,8 +241,8 @@ export default function LoginPage() {
             <Store className="w-3.5 h-3.5 text-amber-600" />
             <span>Mitra Pengelola?</span>
             <Link
-              href="/recycler"
-              className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline ml-1"
+              href="/recycler/login"
+              className="font-bold text-amber-700 hover:text-amber-800 hover:underline ml-1"
             >
               Portal Mitra →
             </Link>

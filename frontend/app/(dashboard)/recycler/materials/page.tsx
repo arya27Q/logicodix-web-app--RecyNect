@@ -4,6 +4,7 @@ import React from 'react';
 import { useRecyclerMaterials } from '@/hooks/recycler/useRecyclerMaterials';
 import { MaterialPriceTable } from '@/components/recycler/MaterialPriceTable';
 import { RecyclerStatsCard } from '@/components/recycler/RecyclerStatsCard';
+import { RecyclerMaterialModal } from '@/components/recycler/RecyclerMaterialModal';
 
 export default function RecyclerMaterialsPage() {
   const {
@@ -14,18 +15,30 @@ export default function RecyclerMaterialsPage() {
     searchQuery,
     setSearchQuery,
     toggleAccepting,
-    updatePrice,
+    saveMaterial,
+    deleteMaterial,
+    openCreate,
+    openEdit,
+    isModalOpen,
+    setIsModalOpen,
+    editingMaterial,
   } = useRecyclerMaterials();
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1">
-          Material & Harga Beli
-        </h1>
-        <p className="text-sm text-slate-500">
-          Atur harga per satuan, minimum kuantitas, syarat mutu, dan ketersediaan penerimaan material untuk warga.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Katalog Material & Ketentuan Harga Beli
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Atur harga per satuan, minimum kuantitas, syarat mutu fisik, dan ketersediaan penerimaan material untuk warga.
+          </p>
+        </div>
+
+        <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span>{activeCount} Material Dibuka</span>
+        </div>
       </div>
 
       <RecyclerStatsCard
@@ -40,7 +53,17 @@ export default function RecyclerMaterialsPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onToggleAccepting={toggleAccepting}
-        onUpdatePrice={updatePrice}
+        onOpenCreate={openCreate}
+        onOpenEdit={openEdit}
+        onDelete={deleteMaterial}
+      />
+
+      {/* Create / Edit Material Modal */}
+      <RecyclerMaterialModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        material={editingMaterial}
+        onSave={saveMaterial}
       />
     </div>
   );

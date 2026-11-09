@@ -56,13 +56,20 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Right CTA (Black Pill Button with User Circle) */}
-        <div className="hidden sm:flex items-center gap-3">
+        {/* Right CTA (Black Pill Button with User Circle & Profile) */}
+        <div className="hidden sm:flex items-center gap-2.5">
           <Link
             href="/login"
-            className="px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-slate-700 hover:text-white hover:bg-slate-900 transition-all duration-200"
+            className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-slate-700 hover:text-white hover:bg-slate-900 transition-all duration-200"
           >
             Masuk
+          </Link>
+          <Link
+            href="/profile"
+            title="Lihat Profil Saya"
+            className="p-2 rounded-full border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700 shadow-2xs transition"
+          >
+            <User className="w-4 h-4" />
           </Link>
           <Link
             href="/match"
@@ -108,6 +115,13 @@ export const Navbar: React.FC = () => {
             </Link>
           ))}
           <div className="pt-3 border-t border-slate-200/80 flex flex-col gap-2">
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full text-center py-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl"
+            >
+              Profil Saya
+            </Link>
             <Link
               href="/login"
               onClick={() => setMobileMenuOpen(false)}

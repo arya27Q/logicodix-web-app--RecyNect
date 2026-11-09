@@ -65,8 +65,7 @@ export const PriceAuditTable: React.FC<{ data?: PriceAuditRecord[] }> = ({
             Mendeteksi harga mitra yang menyimpang di atas ambang batas 20% dari rata-rata pasar wilayah.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full w-fit">
-          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+        <span className="inline-flex items-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full w-fit">
           <span>{data.length} Perlu Perhatian</span>
         </span>
       </div>

@@ -13,6 +13,7 @@ import {
   ExternalLink,
   ChevronRight,
   Boxes,
+  User,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -50,6 +51,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'Audit Harga Pasar',
       href: '/admin/price-audit',
       icon: <Scale className="w-4 h-4" />,
+    },
+    {
+      label: 'Profil Administrator',
+      href: '/admin/profile',
+      icon: <User className="w-4 h-4" />,
     },
   ];
 
@@ -165,22 +171,28 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* User Profile & Logout Bottom Bar */}
         <div className="p-3 border-t border-slate-800 bg-slate-950/40">
           <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0">
+            <Link
+              href="/admin/profile"
+              onClick={onClose}
+              className="flex items-center gap-2.5 min-w-0 group hover:opacity-90 transition"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-colors">
                 AP
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">Arya Pratama</p>
+                <p className="text-xs font-bold text-white truncate group-hover:text-emerald-400 transition-colors">
+                  Arya Pratama
+                </p>
                 <p className="text-[10px] text-emerald-400 font-semibold truncate">
                   Super Administrator
                 </p>
               </div>
-            </div>
+            </Link>
 
             <Link
               href="/admin/login"
               title="Keluar dari sesi admin"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700/60 transition"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700/60 transition shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </Link>

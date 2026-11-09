@@ -39,8 +39,7 @@ export default function AdminCategoriesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
             <span>{activeCount} Kategori Aktif</span>
           </div>
         </div>

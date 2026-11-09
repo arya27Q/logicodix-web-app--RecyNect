@@ -36,8 +36,7 @@ export default function AdminVerificationsPage() {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        <div className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
           <span>{pendingCount} Pengajuan Menunggu</span>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AdminCategoryItem } from '@/hooks/admin/useAdminCategories';
 import { X, Save, Boxes } from 'lucide-react';
 
@@ -17,29 +17,28 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   category,
   onSave,
 }) => {
-  const [name, setName] = useState('');
-  const [unit, setUnit] = useState('kg');
-  const [description, setDescription] = useState('');
-  const [minPrice, setMinPrice] = useState<number>(1000);
-  const [maxPrice, setMaxPrice] = useState<number>(5000);
-
-  useEffect(() => {
-    if (category) {
-      setName(category.name);
-      setUnit(category.unit);
-      setDescription(category.description || '');
-      setMinPrice(category.minPrice);
-      setMaxPrice(category.maxPrice);
-    } else {
-      setName('');
-      setUnit('kg');
-      setDescription('');
-      setMinPrice(1000);
-      setMaxPrice(5000);
-    }
-  }, [category, isOpen]);
-
   if (!isOpen) return null;
+
+  return (
+    <CategoryModalDialog
+      key={category?.id || 'new'}
+      category={category}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
+};
+
+const CategoryModalDialog: React.FC<{
+  category: AdminCategoryItem | null;
+  onClose: () => void;
+  onSave: (data: Partial<AdminCategoryItem>) => void;
+}> = ({ category, onClose, onSave }) => {
+  const [name, setName] = useState(category?.name || '');
+  const [unit, setUnit] = useState(category?.unit || 'kg');
+  const [description, setDescription] = useState(category?.description || '');
+  const [minPrice, setMinPrice] = useState<number>(category?.minPrice ?? 1000);
+  const [maxPrice, setMaxPrice] = useState<number>(category?.maxPrice ?? 5000);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,4 +193,3 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     </div>
   );
 };
-

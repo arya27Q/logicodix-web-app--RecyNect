@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "code-graph": {
+      "source": "alinaqi/claude-bootstrap",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "skills/code-graph/SKILL.md",
+      "computedHash": "ef08c6aeb58497d6fc283dc5b3562e95899b62e1be836b557ffe9594bc406734"
+    }
+  }
+}

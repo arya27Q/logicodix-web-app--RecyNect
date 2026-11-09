@@ -375,3 +375,4 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
     </div>
   );
 };
+

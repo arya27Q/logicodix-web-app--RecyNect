@@ -5,6 +5,7 @@ import { useRecyclerMaterials } from '@/hooks/recycler/useRecyclerMaterials';
 import { MaterialPriceTable } from '@/components/recycler/MaterialPriceTable';
 import { RecyclerStatsCard } from '@/components/recycler/RecyclerStatsCard';
 import { RecyclerMaterialModal } from '@/components/recycler/RecyclerMaterialModal';
+import { MaterialMarginDiagram } from '@/components/recycler/MaterialMarginDiagram';
 
 export default function RecyclerMaterialsPage() {
   const {
@@ -47,6 +48,9 @@ export default function RecyclerMaterialsPage() {
         completedPickups={142}
         rating={4.9}
       />
+
+      {/* Visual Margin & Market Benchmark Spread Diagram */}
+      <MaterialMarginDiagram />
 
       <MaterialPriceTable
         materials={materials}

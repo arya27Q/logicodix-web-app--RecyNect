@@ -58,3 +58,4 @@ export const RecyclerHeader: React.FC<RecyclerHeaderProps> = ({
     </header>
   );
 };
+

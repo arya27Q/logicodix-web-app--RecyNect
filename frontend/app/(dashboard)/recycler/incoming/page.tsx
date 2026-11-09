@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRecyclerIncoming } from '@/hooks/recycler/useRecyclerIncoming';
+import { IncomingQueueDiagrams } from '@/components/recycler/IncomingQueueDiagrams';
 import { Search, CheckCircle2, XCircle, Truck, Phone, Scale } from 'lucide-react';
 
 export default function RecyclerIncomingPage() {
@@ -32,6 +33,9 @@ export default function RecyclerIncomingPage() {
           <span>{pendingCount} Menunggu Kedatangan</span>
         </div>
       </div>
+
+      {/* Visual Operational Flow & Hourly Load Diagrams */}
+      <IncomingQueueDiagrams />
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -185,3 +189,4 @@ export default function RecyclerIncomingPage() {
     </div>
   );
 }
+

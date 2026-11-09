@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { UserImpactCharts } from '@/components/user/UserImpactCharts';
 import {
   User,
   Mail,
@@ -215,6 +216,9 @@ export default function UserProfilePage() {
           <p className="text-[11px] text-slate-500 mt-1 font-medium">Dari daur ulang kardus/kertas</p>
         </div>
       </div>
+
+      {/* Visual Personal Recycling Growth & Composition Charts */}
+      <UserImpactCharts />
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-3">

@@ -37,23 +37,16 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           )}
         </div>
       </div>
+      {/* Notification Bell */}
+      <button
+        type="button"
+        className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
+        aria-label="Lihat notifikasi"
+      >
+        <Bell className="w-4 h-4" />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+      </button>
 
-      <div className="flex items-center gap-3">
-        {/* Live System Status Pill */}
-        <div className="hidden md:flex items-center px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-bold text-emerald-800">
-          <span>Engine v2.4 Live</span>
-        </div>
-
-        {/* Notification Bell */}
-        <button
-          type="button"
-          className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
-          aria-label="Lihat notifikasi"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
-        </button>
-      </div>
     </header>
   );
 };

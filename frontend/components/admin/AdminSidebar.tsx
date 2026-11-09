@@ -71,9 +71,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Brand / Logo */}
         <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
@@ -91,9 +90,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
           </Link>
 
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-            v2.4
-          </span>
         </div>
 
         {/* Navigation Section */}
@@ -113,11 +109,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
-                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
-                      isActive
+                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${isActive
                         ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
                         : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className={isActive ? 'text-slate-950' : 'text-slate-400'}>
@@ -128,11 +123,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
                     {item.badge !== undefined && (
                       <span
-                        className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full tabular-nums ${
-                          isActive
+                        className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full tabular-nums ${isActive
                             ? 'bg-slate-950 text-white'
                             : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        }`}
+                          }`}
                       >
                         {item.badge}
                       </span>

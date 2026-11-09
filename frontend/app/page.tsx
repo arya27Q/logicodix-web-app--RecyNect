@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function HomePage() {
   return (
     <main className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">SampahHub</h1>
+      <h1 className="text-3xl font-bold mb-4">RecyNect</h1>
       <p className="text-gray-600 mb-6">
         Platform Pencocokan Multi-Material dengan Pengelola Sampah Daur Ulang.
       </p>

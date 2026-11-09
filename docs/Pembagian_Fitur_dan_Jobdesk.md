@@ -1,22 +1,22 @@
-# PEMBAGIAN FITUR DAN JOBDESK TIM PENGEMBANGAN SAMPAHHUB (4 ORANG)
+# PEMBAGIAN FITUR DAN JOBDESK TIM PENGEMBANGAN RECYNECT (4 ORANG)
 
-Dokumen ini memuat pembagian ruang lingkup fitur (*Feature Breakdown*), alokasi tanggung jawab pekerjaan (*Jobdesk Allocation*), matriks folder, serta alur kolaborasi untuk **tim pengembang 4 orang** pada proyek **SampahHub**.
+Dokumen ini memuat pembagian ruang lingkup fitur (*Feature Breakdown*), alokasi tanggung jawab pekerjaan (*Jobdesk Allocation*), matriks folder, serta alur kolaborasi untuk **tim pengembang 4 orang** pada proyek **RecyNect**.
 
 ---
 
 ## 1. Prinsip Pembagian Tugas (*Vertical Slice*)
 
-Karena sistem SampahHub telah dirancang menggunakan **Modular Layered Architecture (*Package-by-Feature*)**, tim mengadopsi pola kerja **Vertical Slice**:
+Karena sistem RecyNect telah dirancang menggunakan **Modular Layered Architecture (*Package-by-Feature*)**, tim mengadopsi pola kerja **Vertical Slice**:
 * Setiap anggota tim memegang satu domain fitur secara utuh dari **Frontend (Tampilan UI)** hingga **Backend (API & Query Database)**.
 * **Bebas Bentrok (*Zero Git Merge Conflict*):** Setiap developer mengerjakan folder modul backend dan folder rute frontend yang berbeda, sehingga pekerjaan dapat dikerjakan secara paralel tanpa saling menunggu.
 
 ---
 
-## 2. Rincian 4 Pilar Fitur Utama SampahHub
+## 2. Rincian 4 Pilar Fitur Utama RecyNect
 
 ```mermaid
 graph TD
-    subgraph Sistem["Sistem SampahHub (4 Pilar Fitur)"]
+    subgraph Sistem["Sistem RecyNect (4 Pilar Fitur)"]
         F1["<b>Pilar 1: Matching Engine (Inti Produk)</b><br>Form Multi-Material, Algoritma Pencocokan, Rumus Jarak & Hasil Rekomendasi"]
         F2["<b>Pilar 2: Mitra Pengelola (Recycler)</b><br>Direktori Publik Mitra, Dashboard Pengelola, Kelola Harga & Syarat Mutu"]
         F3["<b>Pilar 3: Administrator & Kategori (Admin)</b><br>Master Kategori Sampah, Verifikasi Mitra, Audit Harga Usang & Data Demo"]
@@ -40,7 +40,7 @@ graph TD
 ## 4. Rincian Jobdesk Masing-Masing Anggota
 
 ### 👤 Orang 1 (Kamu / Tech Lead)
-**Fokus Utama:** Menggarap fitur pembeda utama (*Unique Value Proposition*) SampahHub: Mesin Pencocokan Multi-Material dan Halaman Hasil Rekomendasi.
+**Fokus Utama:** Menggarap fitur pembeda utama (*Unique Value Proposition*) RecyNect: Mesin Pencocokan Multi-Material dan Halaman Hasil Rekomendasi.
 
 #### Tanggung Jawab Backend:
 * Folder: `backend/src/modules/matching/`
@@ -117,7 +117,7 @@ graph TD
 #### Tanggung Jawab Frontend:
 * Folder: `frontend/app/(auth)/`, `frontend/components/maps/`, `frontend/components/layout/`, dan `frontend/components/ui/`
 * `app/(auth)/login/page.tsx` & `register/page.tsx`: Form login dan registrasi akun warga dan pilihan peran.
-* `app/page.tsx`: Desain Landing Page utama pengenalan SampahHub, cara kerja, dan tombol CTA.
+* `app/page.tsx`: Desain Landing Page utama pengenalan RecyNect, cara kerja, dan tombol CTA.
 * `components/layout/`: Navbar navigasi global dan Footer.
 * `components/shared/`: Komponen `DemoBanner.tsx` untuk menampilkan label data simulasi/DEMO secara transparan.
 * `components/maps/LeafletMap.tsx`: Setup komponen peta interaktif Leaflet (OpenStreetMap) menggunakan dynamic import CSR agar dapat dipakai oleh Orang 1 (rute hasil matching) dan Orang 2 (pinpoint lokasi mitra).
@@ -156,5 +156,6 @@ main (Stabel / Siap Deploy)
 | **Hari 4** | • Orang 1: Selesaikan `ScoringService` & API `/api/matching`.<br>• Orang 2 & 3: Bantu testing data simulasi.<br>• Orang 4: Pasang peta Leaflet ke direktori pengelola. | Logika backend Matching Engine 100% selesai dan teruji. |
 | **Hari 5** | • Orang 1: Hubungkan Form Matching Frontend ke API.<br>• Orang 1 & 4: Tampilkan rute titik singgah di peta Leaflet.<br>• Orang 2 & 3: Polishing dashboard masing-masing. | Alur Warga dari input sampah sampai hasil kartu rute berjalan end-to-end. |
 | **Hari 6** | • Seluruh Tim: Pengujian bersama (*Integration Testing*), pengujian kasus ekstrim (misal: kuantitas di bawah minimum, sampah tidak diterima), dan perbaikan bug. | Sistem stabil tanpa error kompilasi dan bug mayor. |
-| **Hari 7** | • Seluruh Tim: Polishing UI, memastikan badge DEMO terpasang transparan, persiapan skenario presentasi dan demo aplikasi. | MVP SampahHub siap dipresentasikan. |
+| **Hari 7** | • Seluruh Tim: Polishing UI, memastikan badge DEMO terpasang transparan, persiapan skenario presentasi dan demo aplikasi. | MVP RecyNect siap dipresentasikan. |
+
 

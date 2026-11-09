@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SampahHub',
+  title: 'RecyNect',
   description: 'Platform Pencocokan Multi-Material dengan Pengelola Sampah Daur Ulang',
 };
 

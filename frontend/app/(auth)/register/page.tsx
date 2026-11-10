@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Store,
   Layers,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -266,7 +267,12 @@ export default function RegisterPage() {
               </label>
             </div>
 
-            {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
+            {errorMessage && (
+              <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button
@@ -286,7 +292,7 @@ export default function RegisterPage() {
           </form>
 
           {/* Already have an account link */}
-          <div className="pt-1 text-center text-xs text-slate-500">
+          <div className="pt-2 text-center text-xs text-slate-500">
             <p>
               Sudah memiliki akun warga?{' '}
               <Link href="/login" className="font-bold text-slate-900 hover:text-emerald-700 underline">
@@ -294,20 +300,6 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
-        </div>
-
-        {/* Mitra Recycler Registration Link */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <Store className="w-3.5 h-3.5 text-amber-600" />
-            <span>Pemilik Bank Sampah / Pengepul?</span>
-          </span>
-          <Link
-            href="/recycler"
-            className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
-          >
-            Daftar Mitra Pengelola ➔
-          </Link>
         </div>
       </div>
     </div>

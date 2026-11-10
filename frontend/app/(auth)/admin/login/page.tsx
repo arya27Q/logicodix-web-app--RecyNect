@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   LockKeyhole,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -165,7 +166,12 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
+          {errorMessage && (
+            <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
@@ -184,26 +190,9 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        {/* Footer Navigation */}
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>
-            Akun administrator diterbitkan oleh superadmin.
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/recycler/login"
-              className="text-slate-400 hover:text-slate-600 transition"
-            >
-              Mitra Pengelola →
-            </Link>
-            <span className="text-slate-300">•</span>
-            <Link
-              href="/login"
-              className="text-slate-400 hover:text-slate-600 transition"
-            >
-              Portal Warga →
-            </Link>
-          </div>
+        {/* Footer Navigation (Isolasi Mandiri Administrator) */}
+        <div className="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-500 text-center">
+          Akun administrator diterbitkan secara internal oleh superadmin RecyNect.
         </div>
       </div>
     </div>

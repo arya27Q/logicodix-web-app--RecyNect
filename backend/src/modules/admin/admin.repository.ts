@@ -13,6 +13,10 @@ export class AdminRepository {
     return db.admin.findUnique({ where: { email } });
   }
 
+  public findUserByEmail(email: string) {
+    return db.user.findUnique({ where: { email }, select: { id: true, role: true } });
+  }
+
   public findById(id: string) {
     return db.admin.findUnique({ where: { id }, select: publicAdminFields });
   }

@@ -14,6 +14,10 @@ export class AuthRepository {
     return db.user.findUnique({ where: { email } });
   }
 
+  public findAdminByEmail(email: string) {
+    return db.admin.findUnique({ where: { email } });
+  }
+
   public findById(id: string) {
     return db.user.findUnique({ where: { id }, select: publicUserFields });
   }

@@ -16,6 +16,7 @@ import {
   UserCheck,
   Store,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -38,7 +39,7 @@ export default function LoginPage() {
     try {
       const account = await apiClient<{ role: string }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, portal: 'warga' }),
       });
       if (account.role !== 'user') {
         await apiClient('/auth/logout', { method: 'POST' });
@@ -185,7 +186,12 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
+            {errorMessage && (
+              <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button
@@ -212,29 +218,6 @@ export default function LoginPage() {
                 Daftar Akun Baru
               </Link>
             </p>
-          </div>
-        </div>
-
-        {/* Mitra Recycler & Admin Secondary Switch (Cleanly Separated) */}
-        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Store className="w-3.5 h-3.5 text-amber-600" />
-            <span>Mitra Pengelola?</span>
-            <Link
-              href="/recycler/login"
-              className="font-bold text-amber-700 hover:text-amber-800 hover:underline ml-1"
-            >
-              Portal Mitra →
-            </Link>
-          </div>
-          <div className="flex items-center gap-1.5 sm:border-l sm:border-slate-200 sm:pl-3">
-            <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
-            <Link
-              href="/admin/login"
-              className="font-semibold text-slate-600 hover:text-slate-900 hover:underline"
-            >
-              Akses Administrator →
-            </Link>
           </div>
         </div>
       </div>

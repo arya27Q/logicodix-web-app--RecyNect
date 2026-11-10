@@ -8,4 +8,5 @@ export interface RegisterInput {
 export interface LoginInput {
   email: string;
   password: string;
+  portal?: 'warga' | 'pengelola' | 'admin';
 }

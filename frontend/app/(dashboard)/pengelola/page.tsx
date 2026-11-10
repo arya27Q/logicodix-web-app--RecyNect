@@ -29,7 +29,7 @@ export default function RecyclerDashboardPage() {
       subtext: 'Dari 142 transaksi warga',
       icon: <Scale className="w-5 h-5 text-emerald-600" />,
       bg: 'bg-emerald-50/60 border-emerald-200/80',
-      href: '/recycler/materials',
+      href: '/pengelola/materials',
     },
     {
       label: 'Estimasi Payout ke Warga',
@@ -37,7 +37,7 @@ export default function RecyclerDashboardPage() {
       subtext: 'Pembayaran setoran selesai',
       icon: <Coins className="w-5 h-5 text-amber-600" />,
       bg: 'bg-amber-50/60 border-amber-200/80',
-      href: '/recycler/incoming',
+      href: '/pengelola/incoming',
     },
     {
       label: 'Kapasitas Gudang',
@@ -45,7 +45,7 @@ export default function RecyclerDashboardPage() {
       subtext: '18.5 Ton dari batas 25 Ton',
       icon: <Warehouse className="w-5 h-5 text-indigo-600" />,
       bg: 'bg-indigo-50/60 border-indigo-200/80',
-      href: '/recycler',
+      href: '/pengelola',
     },
     {
       label: 'Antrean Setoran Hari Ini',
@@ -53,7 +53,7 @@ export default function RecyclerDashboardPage() {
       subtext: 'Warga menuju lokasi gudang',
       icon: <Truck className="w-5 h-5 text-sky-600" />,
       bg: 'bg-sky-50/60 border-sky-200/80',
-      href: '/recycler/incoming',
+      href: '/pengelola/incoming',
       highlight: true,
     },
   ];
@@ -73,7 +73,7 @@ export default function RecyclerDashboardPage() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/recycler/materials"
+            href="/pengelola/materials"
             className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition"
           >
             <Package className="w-4 h-4" />
@@ -129,7 +129,7 @@ export default function RecyclerDashboardPage() {
             </p>
           </div>
           <Link
-            href="/recycler/incoming"
+            href="/pengelola/incoming"
             className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-800"
           >
             <span>Buka Antrean Lengkap ({deliveries.length})</span>

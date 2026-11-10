@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async redirects() {
+    return [
+      {
+        source: '/recycler',
+        destination: '/pengelola',
+        permanent: true,
+      },
+      {
+        source: '/recycler/:path*',
+        destination: '/pengelola/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -14,6 +14,7 @@ import {
   Building2,
   CheckCircle2,
   Warehouse,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function RecyclerLoginPage() {
@@ -36,13 +37,13 @@ export default function RecyclerLoginPage() {
     try {
       const account = await apiClient<{ role: string }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, portal: 'pengelola' }),
       });
       if (account.role !== 'recycler') {
         await apiClient('/auth/logout', { method: 'POST' });
-        throw new Error('Akun ini tidak memiliki akses portal mitra.');
+        throw new Error('Akun ini tidak memiliki akses portal mitra pengelola.');
       }
-      router.replace('/recycler');
+      router.replace('/pengelola');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Login gagal. Coba lagi.');
     } finally {
@@ -153,7 +154,7 @@ export default function RecyclerLoginPage() {
                 Kata Sandi <span className="text-rose-500">*</span>
               </label>
               <Link
-                href="/recycler/forgot-password"
+                href="/pengelola/forgot-password"
                 className="text-xs font-semibold text-amber-700 hover:text-amber-800 transition"
               >
                 Lupa sandi?
@@ -182,7 +183,12 @@ export default function RecyclerLoginPage() {
             </div>
           </div>
 
-          {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
+          {errorMessage && (
+            <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
@@ -201,30 +207,15 @@ export default function RecyclerLoginPage() {
           </button>
         </form>
 
-        {/* Footer Navigation */}
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        {/* Footer Navigation (Isolasi Mandiri Pengelola) */}
+        <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           <div>
             Belum menjadi mitra terdaftar?{' '}
             <Link
-              href="/recycler/register"
+              href="/pengelola/register"
               className="font-bold text-amber-700 hover:text-amber-800 transition underline ml-1"
             >
               Daftar Kemitraan
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-slate-400 hover:text-slate-600 transition"
-            >
-              Portal Warga →
-            </Link>
-            <span className="text-slate-300">•</span>
-            <Link
-              href="/admin/login"
-              className="text-slate-400 hover:text-slate-600 transition"
-            >
-              Admin →
             </Link>
           </div>
         </div>

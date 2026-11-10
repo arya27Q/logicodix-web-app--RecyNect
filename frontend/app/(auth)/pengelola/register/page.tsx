@@ -7,8 +7,8 @@ export default function RecyclerRegisterPage() {
       <p className="mt-3 text-sm leading-6 text-slate-600">
         Akun mitra hanya dapat digunakan setelah dibuat dan diverifikasi oleh administrator RecyNect.
       </p>
-      <Link href="/recycler/login" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">
-        Kembali ke portal mitra
+      <Link href="/pengelola/login" className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800">
+        Kembali ke portal pengelola
       </Link>
     </section>
   );

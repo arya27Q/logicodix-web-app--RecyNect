@@ -36,7 +36,7 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
     setIsLoggingOut(true);
     try {
       await apiClient('/auth/logout', { method: 'POST' });
-      router.replace('/recycler/login');
+      router.replace('/pengelola/login');
       router.refresh();
     } catch (error) {
       setLogoutError(error instanceof Error ? error.message : 'Logout gagal. Coba lagi.');
@@ -48,24 +48,24 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
   const navItems = [
     {
       label: 'Overview & Gudang',
-      href: '/recycler',
+      href: '/pengelola',
       icon: <LayoutDashboard className="w-4 h-4" />,
       exact: true,
     },
     {
       label: 'Material & Harga Beli',
-      href: '/recycler/materials',
+      href: '/pengelola/materials',
       icon: <Package className="w-4 h-4" />,
     },
     {
       label: 'Jadwal & Setoran Masuk',
-      href: '/recycler/incoming',
+      href: '/pengelola/incoming',
       icon: <Truck className="w-4 h-4" />,
       badge: pendingDeliveriesCount > 0 ? pendingDeliveriesCount : undefined,
     },
     {
       label: 'Profil & Legalitas Usaha',
-      href: '/recycler/profile',
+      href: '/pengelola/profile',
       icon: <Store className="w-4 h-4" />,
     },
   ];
@@ -88,7 +88,7 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
       >
         {/* Brand / Logo */}
         <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
-          <Link href="/recycler" className="flex items-center gap-2.5 group">
+          <Link href="/pengelola" className="flex items-center gap-2.5 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-slate-950 font-extrabold shadow-sm">
               <Building2 className="w-5 h-5 text-slate-950" />
             </div>
@@ -180,7 +180,7 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
           {logoutError && <p role="alert" className="mb-2 px-2 text-xs text-rose-300">{logoutError}</p>}
           <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
             <Link
-              href="/recycler/profile"
+              href="/pengelola/profile"
               onClick={onClose}
               className="flex items-center gap-2.5 min-w-0 group hover:opacity-90 transition"
             >

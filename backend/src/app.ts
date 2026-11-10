@@ -6,12 +6,34 @@ import recyclerRoutes from './modules/recyclers/recycler.routes.js';
 import matchingRoutes from './modules/matching/matching.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { ENV } from './config/env.js';
+import { HttpError } from './utils/http-error.js';
 
 const app: Application = express();
 
 // Middlewares
-app.use(cors());
-app.use(express.json());
+app.disable('x-powered-by');
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || ENV.FRONTEND_ORIGINS.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new HttpError(403, 'Origin tidak diizinkan.'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  maxAge: 600,
+}));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health Check

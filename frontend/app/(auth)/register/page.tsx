@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import {
   Mail,
   Lock,
@@ -28,6 +29,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,14 +44,19 @@ export default function RegisterPage() {
       return;
     }
 
+    setErrorMessage('');
     setIsLoading(true);
-
-    // Simulate account registration for User
-    setTimeout(() => {
+    try {
+      await apiClient('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name: fullName, email, phone, password }),
+      });
+      router.replace('/match');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Pendaftaran gagal. Coba lagi.');
+    } finally {
       setIsLoading(false);
-      alert('Pendaftaran akun warga berhasil! Silakan masuk.');
-      router.push('/login');
-    }, 800);
+    }
   };
 
   return (
@@ -143,6 +150,7 @@ export default function RegisterPage() {
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  autoComplete="name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Contoh: Budi Santoso"
@@ -162,6 +170,7 @@ export default function RegisterPage() {
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nama@email.com"
@@ -179,6 +188,7 @@ export default function RegisterPage() {
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="081234567890"
@@ -199,11 +209,13 @@ export default function RegisterPage() {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimal 8 karakter"
+                    placeholder="Minimal 12 karakter"
                     required
-                    minLength={6}
+                    minLength={12}
+                    maxLength={128}
                     className="w-full h-11 rounded-xl border border-slate-300 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs"
                   />
                   <button
@@ -224,11 +236,13 @@ export default function RegisterPage() {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Ulangi kata sandi"
                     required
-                    minLength={6}
+                    minLength={12}
+                    maxLength={128}
                     className="w-full h-11 rounded-xl border border-slate-300 bg-white pl-10 pr-3.5 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs"
                   />
                 </div>
@@ -251,6 +265,8 @@ export default function RegisterPage() {
                 </span>
               </label>
             </div>
+
+            {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
 
             {/* Submit Button */}
             <button

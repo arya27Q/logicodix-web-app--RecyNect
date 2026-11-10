@@ -1,17 +1,34 @@
-// Khusus query database tabel 'admins' dan aksi administratif
+import { VerificationStatus } from '@prisma/client';
+import { db } from '../../config/database.js';
+
+const publicAdminFields = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+} as const;
+
 export class AdminRepository {
-  public async findByEmail(email: string) {
-    // TODO: Query Prisma `db.admin.findUnique({ where: { email } })`
-    return null;
+  public findByEmail(email: string) {
+    return db.admin.findUnique({ where: { email } });
   }
 
-  public async updateRecyclerVerification(id: string, status: 'verified' | 'rejected') {
-    // TODO: Query Prisma `db.recycler.update({ where: { id }, data: { verificationStatus: status } })`
-    return { id, verificationStatus: status };
+  public findById(id: string) {
+    return db.admin.findUnique({ where: { id }, select: publicAdminFields });
   }
 
-  public async findPendingRecyclers() {
-    // TODO: Query Prisma `db.recycler.findMany({ where: { verificationStatus: 'pending' } })`
-    return [];
+  public updateRecyclerVerification(id: string, status: VerificationStatus) {
+    return db.recycler.update({
+      where: { id },
+      data: { verificationStatus: status, isActive: status === VerificationStatus.verified },
+      select: { id: true, verificationStatus: true, isActive: true },
+    });
+  }
+
+  public findPendingRecyclers() {
+    return db.recycler.findMany({
+      where: { verificationStatus: VerificationStatus.pending },
+      select: { id: true, name: true, managementType: true, address: true, contact: true, createdAt: true },
+    });
   }
 }

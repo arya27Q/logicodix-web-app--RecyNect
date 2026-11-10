@@ -1,8 +1,39 @@
+import 'dotenv/config';
 import { PrismaClient, ManagementType, VerificationStatus, UserRole } from '@prisma/client';
+import { hashPassword } from '../src/security/password.js';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV !== 'development') {
+    throw new Error('Seed demo hanya boleh dijalankan pada NODE_ENV=development.');
+  }
+  let databaseHost = '';
+  try {
+    databaseHost = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).hostname : '';
+  } catch {
+    throw new Error('DATABASE_URL tidak valid.');
+  }
+  if (!['localhost', '127.0.0.1', '::1'].includes(databaseHost)) {
+    throw new Error('Seed demo hanya boleh dijalankan terhadap database lokal.');
+  }
+  if (process.env.RESET_DATABASE !== 'true') {
+    throw new Error('Seed ini menghapus data; set RESET_DATABASE=true hanya pada database development yang aman.');
+  }
+
+  const userPassword = process.env.SEED_USER_PASSWORD;
+  const recyclerPassword = process.env.SEED_RECYCLER_PASSWORD;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if ([userPassword, recyclerPassword, adminPassword].some((password) => !password || password.length < 12 || password.length > 128)) {
+    throw new Error('SEED_USER_PASSWORD, SEED_RECYCLER_PASSWORD, dan SEED_ADMIN_PASSWORD wajib diisi 12-128 karakter.');
+  }
+
+  const [userPasswordHash, recyclerPasswordHash, adminPasswordHash] = await Promise.all([
+    hashPassword(userPassword!),
+    hashPassword(recyclerPassword!),
+    hashPassword(adminPassword!),
+  ]);
+
   console.log('🌱 Memulai seeding database RecyNect...');
 
   // 1. Bersihkan data lama (opsional jika tabel sudah ada)
@@ -75,7 +106,7 @@ async function main() {
     data: {
       name: 'Budi Santoso',
       email: 'warga@recynect.id',
-      password: '$2b$10$placeholderhashedpassword', // password123
+      password: userPasswordHash,
       phone: '081234567890',
       role: UserRole.user,
     },
@@ -85,7 +116,7 @@ async function main() {
     data: {
       name: 'Pengelola Bank Sampah Berkah',
       email: 'mitra@recynect.id',
-      password: '$2b$10$placeholderhashedpassword',
+      password: recyclerPasswordHash,
       phone: '081298765432',
       role: UserRole.recycler,
     },
@@ -95,7 +126,7 @@ async function main() {
     data: {
       name: 'Super Administrator',
       email: 'admin@recynect.id',
-      password: '$2b$10$placeholderhashedpassword',
+      password: adminPasswordHash,
       role: 'superadmin',
     },
   });

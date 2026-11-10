@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import {
   Mail,
   Lock,
@@ -10,7 +11,6 @@ import {
   EyeOff,
   ArrowRight,
   ShieldCheck,
-  KeyRound,
   CheckCircle2,
   LockKeyhole,
 } from 'lucide-react';
@@ -19,17 +19,9 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [securityCode, setSecurityCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-
-  // Quick Demo Auto-fill for Administrator
-  const handleFillDemoAdmin = () => {
-    setEmail('admin@recynect.id');
-    setPassword('superadmin2026');
-    setSecurityCode('ADM-SEC-9921');
-  };
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,13 +30,19 @@ export default function AdminLoginPage() {
       return;
     }
 
+    setErrorMessage('');
     setIsLoading(true);
-
-    // Simulate verification authentication
-    setTimeout(() => {
+    try {
+      await apiClient('/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      router.replace('/admin');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Login gagal. Coba lagi.');
+    } finally {
       setIsLoading(false);
-      router.push('/admin');
-    }, 700);
+    }
   };
 
   return (
@@ -84,22 +82,10 @@ export default function AdminLoginPage() {
         <div className="relative z-10 space-y-2.5 py-6">
           <div className="flex items-center gap-2 text-xs text-slate-200 font-semibold">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Enkripsi 256-Bit TLS & Sesi Terisolasi</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-200 font-semibold">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Audit Trail Otomatis Setiap Aksi Verifikasi</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-200 font-semibold">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>Deteksi Dini Anomali Deviasi Harga Pasar</span>
           </div>
         </div>
 
-        {/* Content Bottom: Disclaimer Badge */}
-        <div className="relative z-10 pt-4 border-t border-white/10 text-[11px] text-slate-400">
-          Setiap aktivitas login dan modifikasi data master dicatat dalam log audit kepatuhan RecyNect.
-        </div>
       </div>
 
       {/* ============================================================== */}
@@ -120,21 +106,6 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* Quick Demo Credentials Auto-Fill Pill */}
-        <div className="mb-6 p-3 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-          <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Coba simulasi login pengujian?</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillDemoAdmin}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:border-emerald-500 hover:text-emerald-700 transition shadow-2xs shrink-0"
-          >
-            <span>Isi Akun Demo Admin</span>
-          </button>
-        </div>
-
         {/* Main Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email Dinas Input */}
@@ -148,6 +119,7 @@ export default function AdminLoginPage() {
               </div>
               <input
                 type="email"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -176,6 +148,7 @@ export default function AdminLoginPage() {
               </div>
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -192,39 +165,7 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          {/* Optional Security Code / Passcode */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-              Kode Otoritas / Security Passcode (Opsional)
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <KeyRound className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={securityCode}
-                onChange={(e) => setSecurityCode(e.target.value)}
-                placeholder="ADM-SEC-XXXX"
-                className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 placeholder-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-mono uppercase text-slate-900"
-              />
-            </div>
-          </div>
-
-          {/* Remember me */}
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-              />
-              <span className="text-xs text-slate-600 font-medium">
-                Ingat sesi ini di perangkat dinas
-              </span>
-            </label>
-          </div>
+          {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
 
           {/* Submit Button */}
           <button
@@ -246,13 +187,7 @@ export default function AdminLoginPage() {
         {/* Footer Navigation */}
         <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div>
-            Staf baru belum memiliki akun?{' '}
-            <Link
-              href="/admin/register"
-              className="font-bold text-emerald-700 hover:text-emerald-800 transition underline ml-1"
-            >
-              Registrasi Staf
-            </Link>
+            Akun administrator diterbitkan oleh superadmin.
           </div>
           <div className="flex items-center gap-3">
             <Link

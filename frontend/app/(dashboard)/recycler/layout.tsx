@@ -1,34 +1,17 @@
-'use client';
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+import { requireRole } from '@/lib/server-auth';
+import { RecyclerDashboardShell } from './recycler-dashboard-shell';
 
-import React, { useState } from 'react';
-import { RecyclerSidebar } from '@/components/recycler/RecyclerSidebar';
-import { RecyclerHeader } from '@/components/recycler/RecyclerHeader';
-import { useRecyclerIncoming } from '@/hooks/recycler/useRecyclerIncoming';
+async function ProtectedRecycler({ children }: { children: ReactNode }) {
+  await requireRole('recycler');
+  return <RecyclerDashboardShell>{children}</RecyclerDashboardShell>;
+}
 
-export default function RecyclerDashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { pendingCount } = useRecyclerIncoming();
-
+export default function RecyclerDashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Navigation */}
-      <RecyclerSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        pendingDeliveriesCount={pendingCount}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <RecyclerHeader onToggleSidebar={() => setIsSidebarOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" aria-busy="true" />}>
+      <ProtectedRecycler>{children}</ProtectedRecycler>
+    </Suspense>
   );
 }

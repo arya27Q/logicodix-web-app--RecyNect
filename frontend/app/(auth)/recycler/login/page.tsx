@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import {
   Mail,
   Lock,
@@ -13,25 +14,15 @@ import {
   Building2,
   CheckCircle2,
   Warehouse,
-  KeyRound,
-  Scale,
 } from 'lucide-react';
 
 export default function RecyclerLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [warehouseCode, setWarehouseCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-
-  // Quick Demo Auto-fill for Mitra Pengelola
-  const handleFillDemoMitra = () => {
-    setEmail('mitra@recynect.id');
-    setPassword('mitra2026');
-    setWarehouseCode('GDG-JKT-001');
-  };
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +31,23 @@ export default function RecyclerLoginPage() {
       return;
     }
 
+    setErrorMessage('');
     setIsLoading(true);
-
-    setTimeout(() => {
+    try {
+      const account = await apiClient<{ role: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      if (account.role !== 'recycler') {
+        await apiClient('/auth/logout', { method: 'POST' });
+        throw new Error('Akun ini tidak memiliki akses portal mitra.');
+      }
+      router.replace('/recycler');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Login gagal. Coba lagi.');
+    } finally {
       setIsLoading(false);
-      router.push('/recycler');
-    }, 700);
+    }
   };
 
   return (
@@ -121,21 +123,6 @@ export default function RecyclerLoginPage() {
           </p>
         </div>
 
-        {/* Quick Demo Credentials Auto-Fill Pill */}
-        <div className="mb-6 p-3 rounded-2xl bg-amber-50/50 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-          <div className="flex items-center gap-2 text-xs text-amber-900 font-medium">
-            <Building2 className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>Simulasi login pengujian mitra pengelola?</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillDemoMitra}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-900 bg-white border border-amber-300 rounded-xl hover:bg-amber-100/60 transition shadow-2xs shrink-0"
-          >
-            <span>Isi Akun Demo Mitra</span>
-          </button>
-        </div>
-
         {/* Main Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email Mitra Input */}
@@ -149,6 +136,7 @@ export default function RecyclerLoginPage() {
               </div>
               <input
                 type="email"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -177,6 +165,7 @@ export default function RecyclerLoginPage() {
               </div>
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -193,39 +182,7 @@ export default function RecyclerLoginPage() {
             </div>
           </div>
 
-          {/* Optional Warehouse Identifier */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-              Kode Unit Gudang / Drop-Point (Opsional)
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Scale className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={warehouseCode}
-                onChange={(e) => setWarehouseCode(e.target.value)}
-                placeholder="GDG-JKT-XXXX"
-                className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition shadow-2xs font-mono uppercase text-slate-900"
-              />
-            </div>
-          </div>
-
-          {/* Remember me */}
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300"
-              />
-              <span className="text-xs text-slate-600 font-medium">
-                Ingat sesi di komputer timbangan ini
-              </span>
-            </label>
-          </div>
+          {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
 
           {/* Submit Button */}
           <button

@@ -53,6 +53,7 @@ model User {
   password         String            @db.VarChar(255)
   phone            String?           @db.VarChar(30)
   role             UserRole          @default(user)
+  authVersion      Int               @default(0) @map("auth_version")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
@@ -72,6 +73,7 @@ model Admin {
   email     String   @unique @db.VarChar(191)
   password  String   @db.VarChar(255)
   role      String   @default("admin") @db.VarChar(50) // superadmin, moderator, auditor
+  authVersion Int    @default(0) @map("auth_version")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

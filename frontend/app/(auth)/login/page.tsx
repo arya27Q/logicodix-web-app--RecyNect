@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import {
   Mail,
   Lock,
@@ -23,13 +24,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-
-  // Quick Demo fill for User/Warga
-  const handleFillDemoUser = () => {
-    setEmail('warga@recynect.id');
-    setPassword('password123');
-  };
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,13 +33,23 @@ export default function LoginPage() {
       return;
     }
 
+    setErrorMessage('');
     setIsLoading(true);
-
-    // Simulate login redirect for Citizen/User
-    setTimeout(() => {
+    try {
+      const account = await apiClient<{ role: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      if (account.role !== 'user') {
+        await apiClient('/auth/logout', { method: 'POST' });
+        throw new Error('Gunakan portal sesuai jenis akun Anda.');
+      }
+      router.replace('/match');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Login gagal. Coba lagi.');
+    } finally {
       setIsLoading(false);
-      router.push('/match');
-    }, 700);
+    }
   };
 
   return (
@@ -124,22 +129,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Quick Demo Fill Button */}
-          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-xs font-bold text-slate-800 block">Ingin Coba Langsung?</span>
-              <span className="text-[11px] text-slate-500">Klik untuk isi otomatis akun simulasi</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleFillDemoUser}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold transition shadow-2xs"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Isi Akun Demo</span>
-            </button>
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
@@ -151,6 +140,7 @@ export default function LoginPage() {
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@email.com"
@@ -177,6 +167,7 @@ export default function LoginPage() {
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -194,18 +185,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 text-xs text-slate-600 font-medium cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-                <span>Ingat saya di perangkat ini</span>
-              </label>
-            </div>
+            {errorMessage && <p role="alert" className="text-sm text-rose-700">{errorMessage}</p>}
 
             {/* Submit Button */}
             <button

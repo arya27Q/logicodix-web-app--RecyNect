@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import {
   LayoutDashboard,
   Package,
@@ -26,6 +27,23 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
   pendingDeliveriesCount = 3,
 }) => {
   const pathname = usePathname();
+  const router = useRouter();
+  const [logoutError, setLogoutError] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLogoutError('');
+    setIsLoggingOut(true);
+    try {
+      await apiClient('/auth/logout', { method: 'POST' });
+      router.replace('/recycler/login');
+      router.refresh();
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : 'Logout gagal. Coba lagi.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const navItems = [
     {
@@ -159,6 +177,7 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
 
         {/* User Profile & Logout Bottom Bar */}
         <div className="p-3 border-t border-slate-800 bg-slate-950/40">
+          {logoutError && <p role="alert" className="mb-2 px-2 text-xs text-rose-300">{logoutError}</p>}
           <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
             <Link
               href="/recycler/profile"
@@ -178,13 +197,16 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
               </div>
             </Link>
 
-            <Link
-              href="/recycler/login"
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
               title="Keluar dari sesi mitra"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700/60 transition shrink-0"
+              aria-label="Keluar dari sesi mitra"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700/60 transition shrink-0 disabled:opacity-50"
             >
               <LogOut className="w-4 h-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import { UserImpactCharts } from '@/components/user/UserImpactCharts';
 import {
   User,
@@ -78,6 +80,7 @@ const SAMPLE_HISTORY: HistoryItem[] = [
 ];
 
 export default function UserProfilePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'settings'>('overview');
 
   // Profile Form States
@@ -94,6 +97,8 @@ export default function UserProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,17 +106,31 @@ export default function UserProfilePage() {
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('Konfirmasi kata sandi baru tidak cocok.');
+      setPasswordError('Konfirmasi kata sandi baru tidak cocok.');
       return;
     }
-    setPasswordSuccess(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setPasswordSuccess(false), 3000);
+
+    setPasswordError('');
+    setPasswordSuccess(false);
+    setIsUpdatingPassword(true);
+    try {
+      await apiClient('/auth/password', {
+        method: 'PATCH',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => router.replace('/login?passwordUpdated=1'), 900);
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : 'Kata sandi tidak berhasil diperbarui.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   return (
@@ -428,6 +447,7 @@ export default function UserProfilePage() {
                 <span>Kata sandi Anda berhasil diperbarui.</span>
               </div>
             )}
+            {passwordError && <p role="alert" className="text-sm text-rose-700">{passwordError}</p>}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -438,6 +458,7 @@ export default function UserProfilePage() {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
@@ -455,10 +476,13 @@ export default function UserProfilePage() {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     required
+                    minLength={12}
+                    maxLength={128}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 8 karakter"
+                    placeholder="Minimal 12 karakter"
                     className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
                   />
                 </div>
@@ -472,7 +496,10 @@ export default function UserProfilePage() {
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     required
+                    minLength={12}
+                    maxLength={128}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Ulangi sandi baru"
@@ -492,9 +519,10 @@ export default function UserProfilePage() {
             <div className="pt-3 border-t border-slate-100 flex justify-end">
               <button
                 type="submit"
+                disabled={isUpdatingPassword}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition active:scale-[0.99]"
               >
-                <span>Ubah Sandi Akun</span>
+                <span>{isUpdatingPassword ? 'Memperbarui...' : 'Ubah Sandi Akun'}</span>
               </button>
             </div>
           </form>

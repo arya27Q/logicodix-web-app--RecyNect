@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password` VARCHAR(255) NOT NULL,
     `phone` VARCHAR(30) NULL,
     `role` ENUM('user', 'recycler', 'admin') NOT NULL DEFAULT 'user',
+    `auth_version` INTEGER NOT NULL DEFAULT 0,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
     `email` VARCHAR(191) NOT NULL,
     `password` VARCHAR(255) NOT NULL,
     `role` VARCHAR(50) NOT NULL DEFAULT 'admin',
+    `auth_version` INTEGER NOT NULL DEFAULT 0,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 

@@ -1,23 +1,24 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { AdminService } from './admin.service.js';
+import { setSessionCookie } from '../../security/session.js';
 import { sendSuccess } from '../../utils/api-response.js';
 
 export class AdminController {
-  private adminService: AdminService;
-
-  constructor() {
-    this.adminService = new AdminService();
-  }
+  private readonly adminService = new AdminService();
 
   public login = async (req: Request, res: Response) => {
     const result = await this.adminService.login(req.body);
-    return sendSuccess(res, result, 'Login admin internal berhasil');
+    setSessionCookie(res, result.token);
+    return sendSuccess(res, result.admin, 'Login administrator berhasil');
   };
 
   public verifyRecycler = async (req: Request, res: Response) => {
-    const id = req.params.id as string;
-    const { status } = req.body;
-    const result = await this.adminService.verifyRecycler(id, status);
+    const result = await this.adminService.verifyRecycler(req.params.id as string, req.body.status);
     return sendSuccess(res, result, 'Status verifikasi pengelola berhasil diperbarui');
+  };
+
+  public getPendingRecyclers = async (_req: Request, res: Response) => {
+    const result = await this.adminService.getPendingRecyclers();
+    return sendSuccess(res, result, 'Daftar verifikasi berhasil dimuat');
   };
 }

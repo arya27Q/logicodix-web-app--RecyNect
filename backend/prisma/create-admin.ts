@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import process from 'node:process';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { hashPassword } from '../src/security/password.js';

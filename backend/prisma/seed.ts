@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import process from 'node:process';
 import { PrismaClient, ManagementType, VerificationStatus, UserRole } from '@prisma/client';
 import { hashPassword } from '../src/security/password.js';
 

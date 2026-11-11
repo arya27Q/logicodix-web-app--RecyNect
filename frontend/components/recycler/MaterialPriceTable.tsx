@@ -11,7 +11,7 @@ interface MaterialPriceTableProps {
   onToggleAccepting: (id: string) => void;
   onOpenCreate?: () => void;
   onOpenEdit?: (mat: RecyclerMaterial) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (mat: RecyclerMaterial) => void;
 }
 
 export const MaterialPriceTable: React.FC<MaterialPriceTableProps> = ({
@@ -58,42 +58,48 @@ export const MaterialPriceTable: React.FC<MaterialPriceTableProps> = ({
       {/* Responsive table */}
       <div className="card-surface rounded-2xl overflow-hidden border border-slate-200/80 shadow-2xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-3.5 px-5 whitespace-nowrap min-w-[180px]">Nama Material</th>
-                <th className="py-3.5 px-5 whitespace-nowrap min-w-[130px]">Kategori</th>
-                <th className="py-3.5 px-5 text-right whitespace-nowrap min-w-[160px]">Harga Beli Gudang</th>
-                <th className="py-3.5 px-5 text-center whitespace-nowrap min-w-[120px]">Min. Setoran</th>
-                <th className="py-3.5 px-5 min-w-[200px]">Syarat Mutu Fisik</th>
-                <th className="py-3.5 px-5 text-center whitespace-nowrap min-w-[140px]">Status Penerimaan</th>
-                <th className="py-3.5 px-5 text-right whitespace-nowrap min-w-[100px]">Aksi</th>
+                <th className="py-3.5 px-4 whitespace-nowrap w-[22%]">Nama Material</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[15%]">Kategori</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap w-[15%]">Harga Beli</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap w-[12%]">Min. Setoran</th>
+                <th className="py-3.5 px-4 w-[24%]">Syarat Mutu Fisik</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap w-[12%]">Status</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap w-[10%] sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.04)]">
+                  Aksi
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {materials.map((mat) => (
-                <tr key={mat.id} className="hover:bg-slate-50/70 transition">
-                  <td className="py-4 px-5 font-bold text-slate-900 whitespace-nowrap sm:whitespace-normal">
-                    {mat.name}
+                <tr key={mat.id} className="hover:bg-slate-50/70 transition group">
+                  <td className="py-3.5 px-4 font-bold text-slate-900">
+                    <span className="block truncate max-w-[200px]" title={mat.name}>
+                      {mat.name}
+                    </span>
                   </td>
-                  <td className="py-4 px-5 text-slate-600 whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">
                     <span className="inline-flex px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold">
                       {mat.category}
                     </span>
                   </td>
-                  <td className="py-4 px-5 text-right whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-right whitespace-nowrap">
                     <span className="font-extrabold text-emerald-700 text-sm tabular-nums">
                       Rp {mat.pricePerUnit.toLocaleString('id-ID')}
                     </span>
                     <span className="text-slate-400 text-[11px] ml-1 font-semibold">/{mat.unit}</span>
                   </td>
-                  <td className="py-4 px-5 text-center text-slate-700 tabular-nums font-semibold whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-center text-slate-700 tabular-nums font-semibold whitespace-nowrap">
                     {mat.minQuantity} {mat.unit}
                   </td>
-                  <td className="py-4 px-5 text-slate-600 text-[11px] leading-relaxed">
-                    {mat.qualityRequirements}
+                  <td className="py-3.5 px-4 text-slate-600 text-[11px] leading-relaxed">
+                    <p className="line-clamp-2" title={mat.qualityRequirements}>
+                      {mat.qualityRequirements || '-'}
+                    </p>
                   </td>
-                  <td className="py-4 px-5 text-center whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
                     <button
                       type="button"
                       onClick={() => onToggleAccepting(mat.id)}
@@ -116,14 +122,15 @@ export const MaterialPriceTable: React.FC<MaterialPriceTableProps> = ({
                       )}
                     </button>
                   </td>
-                  <td className="py-4 px-5 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="py-3.5 px-4 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-[#f8fafc] transition shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.04)]">
+                    <div className="flex items-center justify-center gap-1.5">
                       {onOpenEdit && (
                         <button
                           type="button"
                           onClick={() => onOpenEdit(mat)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-amber-50 transition"
-                          title="Edit ketentuan harga"
+                          className="p-1.5 rounded-lg text-slate-600 hover:text-amber-700 hover:bg-amber-100/80 border border-slate-200 hover:border-amber-300 transition shadow-2xs"
+                          title="Edit ketentuan harga & mutu"
+                          aria-label={`Edit ${mat.name}`}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -131,9 +138,10 @@ export const MaterialPriceTable: React.FC<MaterialPriceTableProps> = ({
                       {onDelete && (
                         <button
                           type="button"
-                          onClick={() => onDelete(mat.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                          title="Hapus material dari daftar"
+                          onClick={() => onDelete(mat)}
+                          className="p-1.5 rounded-lg text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-200 hover:border-rose-600 transition shadow-2xs"
+                          title="Hapus material ini"
+                          aria-label={`Hapus ${mat.name}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -144,8 +152,17 @@ export const MaterialPriceTable: React.FC<MaterialPriceTableProps> = ({
               ))}
               {materials.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                    Tidak ada material daur ulang yang cocok dengan kata kunci pencarian.
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    {searchQuery ? (
+                      <span>Tidak ada material daur ulang yang cocok dengan pencarian &quot;{searchQuery}&quot;.</span>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="font-semibold text-slate-600">Belum ada material yang didaftarkan di gudang Anda.</p>
+                        <p className="text-[11px] text-slate-400">
+                          Klik tombol &quot;+ Buka Penerimaan Material Baru&quot; di atas untuk mulai menerima sampah dari warga.
+                        </p>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )}

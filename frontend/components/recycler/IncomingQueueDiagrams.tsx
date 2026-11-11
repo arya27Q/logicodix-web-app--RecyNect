@@ -1,37 +1,109 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Clock,
   CheckCircle2,
-  AlertCircle,
   Truck,
   Scale,
   FileCheck2,
   Banknote,
   ArrowRight,
   TrendingUp,
+  User,
 } from 'lucide-react';
+import { IncomingDelivery } from '@/hooks/recycler/useRecyclerIncoming';
 
 interface HourlyQueueSlot {
   timeRange: string;
+  startHour: number;
+  endHour: number;
   count: number;
   capacity: number;
   density: 'rendah' | 'sedang' | 'tinggi';
   totalKg: number;
+  citizens: string[];
 }
 
-const HOURLY_DATA: HourlyQueueSlot[] = [
-  { timeRange: '08:00 - 10:00', count: 3, capacity: 6, density: 'sedang', totalKg: 120 },
-  { timeRange: '10:00 - 12:00', count: 6, capacity: 6, density: 'tinggi', totalKg: 280 },
-  { timeRange: '12:00 - 13:00', count: 1, capacity: 4, density: 'rendah', totalKg: 45 },
-  { timeRange: '13:00 - 15:00', count: 5, capacity: 6, density: 'tinggi', totalKg: 210 },
-  { timeRange: '15:00 - 17:00', count: 2, capacity: 5, density: 'rendah', totalKg: 85 },
+interface IncomingQueueDiagramsProps {
+  deliveries?: IncomingDelivery[];
+}
+
+const TIME_SLOT_DEFS = [
+  { timeRange: '08:00 - 10:00', startHour: 8, endHour: 10, capacity: 6 },
+  { timeRange: '10:00 - 12:00', startHour: 10, endHour: 12, capacity: 6 },
+  { timeRange: '12:00 - 13:00', startHour: 12, endHour: 13, capacity: 4 },
+  { timeRange: '13:00 - 15:00', startHour: 13, endHour: 15, capacity: 6 },
+  { timeRange: '15:00 - 17:00', startHour: 15, endHour: 17, capacity: 5 },
 ];
 
-export const IncomingQueueDiagrams: React.FC = () => {
-  const [selectedSlotIdx, setSelectedSlotIdx] = useState<number>(1); // Default peak 10:00-12:00
-  const activeSlot = HOURLY_DATA[selectedSlotIdx];
+function extractHourFromArrivalTime(timeStr?: string): number | null {
+  if (!timeStr) return null;
+  const match = timeStr.match(/(\d{1,2})[:.](\d{2})/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return null;
+}
+
+function extractWeight(delivery: IncomingDelivery): number {
+  if (delivery.actualWeight && delivery.actualWeight > 0) {
+    return delivery.actualWeight;
+  }
+  const weightStr = delivery.totalEstimatedWeight || '';
+  const match = weightStr.match(/([\d.]+)/);
+  if (match) {
+    return parseFloat(match[1]) || 0;
+  }
+  return 0;
+}
+
+export const IncomingQueueDiagrams: React.FC<IncomingQueueDiagramsProps> = ({ deliveries }) => {
+  // Hitung distribusi antrean riil dari daftar deliveries aktif/masuk
+  const hourlyData = useMemo<HourlyQueueSlot[]>(() => {
+    if (!deliveries) {
+      return [
+        { timeRange: '08:00 - 10:00', startHour: 8, endHour: 10, count: 3, capacity: 6, density: 'sedang', totalKg: 120, citizens: ['Warga RT 01', 'Budi Santoso'] },
+        { timeRange: '10:00 - 12:00', startHour: 10, endHour: 12, count: 6, capacity: 6, density: 'tinggi', totalKg: 280, citizens: ['Santi Damayanti', 'Rian Hidayat'] },
+        { timeRange: '12:00 - 13:00', startHour: 12, endHour: 13, count: 1, capacity: 4, density: 'rendah', totalKg: 45, citizens: ['Joko Susilo'] },
+        { timeRange: '13:00 - 15:00', startHour: 13, endHour: 15, count: 5, capacity: 6, density: 'tinggi', totalKg: 210, citizens: ['Bank Sampah Dago'] },
+        { timeRange: '15:00 - 17:00', startHour: 15, endHour: 17, count: 2, capacity: 5, density: 'rendah', totalKg: 85, citizens: ['Armada RW 07'] },
+      ];
+    }
+
+    return TIME_SLOT_DEFS.map((slot) => {
+      const slotDeliveries = deliveries.filter((d) => {
+        // Abaikan transaksi yang berstatus dibatalkan
+        if (d.status === 'batal') return false;
+        const h = extractHourFromArrivalTime(d.arrivalTime);
+        if (h === null) return false;
+        return h >= slot.startHour && h < slot.endHour;
+      });
+
+      const count = slotDeliveries.length;
+      const totalKg = Math.round(slotDeliveries.reduce((sum, d) => sum + extractWeight(d), 0) * 10) / 10;
+      const citizens = slotDeliveries.map((d) => d.citizenName);
+
+      const ratio = count / slot.capacity;
+      const density: 'rendah' | 'sedang' | 'tinggi' =
+        count === 0 ? 'rendah' : ratio >= 0.7 ? 'tinggi' : ratio >= 0.3 ? 'sedang' : 'rendah';
+
+      return {
+        ...slot,
+        count,
+        totalKg,
+        density,
+        citizens,
+      };
+    });
+  }, [deliveries]);
+
+  // Pilih slot aktif: prioritaskan slot dengan antrean terbanyak atau default slot ke-1
+  const [selectedSlotIdx, setSelectedSlotIdx] = useState<number>(() => {
+    return 1;
+  });
+
+  const activeSlot = hourlyData[selectedSlotIdx] || hourlyData[0];
 
   const workflowSteps = [
     {
@@ -194,12 +266,12 @@ export const IncomingQueueDiagrams: React.FC = () => {
               </g>
 
               {/* Bars per Slot */}
-              {HOURLY_DATA.map((slot, idx) => {
+              {hourlyData.map((slot, idx) => {
                 const isSelected = selectedSlotIdx === idx;
                 const slotWidth = 72;
                 const slotX = 50 + idx * 98;
                 // Height calculation: 145 is Y0, 20 is Y6 (span 125px -> 20.8px per unit)
-                const barHeight = slot.count * 20.8;
+                const barHeight = Math.min(125, slot.count * 20.8);
                 const capHeight = slot.capacity * 20.8;
                 const barY = 145 - barHeight;
                 const capY = 145 - capHeight;
@@ -236,11 +308,11 @@ export const IncomingQueueDiagrams: React.FC = () => {
                     {/* Count Text */}
                     <text
                       x={slotX + slotWidth / 2}
-                      y={barY - 6}
+                      y={slot.count > 0 ? barY - 6 : 138}
                       textAnchor="middle"
                       fontSize="10"
                       fontWeight="bold"
-                      fill={isSelected ? '#b45309' : '#475569'}
+                      fill={isSelected ? '#b45309' : slot.count > 0 ? '#475569' : '#cbd5e1'}
                     >
                       {slot.count} Warga
                     </text>
@@ -287,7 +359,9 @@ export const IncomingQueueDiagrams: React.FC = () => {
               Pukul {activeSlot.timeRange}
             </h4>
             <p className="text-xs text-slate-500 mt-0.5">
-              {activeSlot.density === 'tinggi'
+              {activeSlot.count === 0
+                ? 'Belum ada jadwal armada atau warga terdaftar pada interval ini.'
+                : activeSlot.density === 'tinggi'
                 ? 'Interval waktu puncak kedatangan armada dan warga.'
                 : 'Arus timbangan berjalan normal tanpa potensi antrean.'}
             </p>
@@ -304,9 +378,21 @@ export const IncomingQueueDiagrams: React.FC = () => {
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600">Utilisasi Timbangan:</span>
                 <span className="font-bold text-slate-900">
-                  {Math.round((activeSlot.count / activeSlot.capacity) * 100)}%
+                  {Math.min(100, Math.round((activeSlot.count / activeSlot.capacity) * 100))}%
                 </span>
               </div>
+
+              {activeSlot.citizens && activeSlot.citizens.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-900">
+                  <div className="font-bold flex items-center gap-1 mb-1">
+                    <User className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Warga / Armada Terdaftar:</span>
+                  </div>
+                  <p className="line-clamp-2 text-slate-700 font-medium">
+                    {activeSlot.citizens.join(', ')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

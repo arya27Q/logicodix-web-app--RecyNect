@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { RouteVisualizer } from '@/components/maps/RouteVisualizer';
+import { ScheduleDeliveryModal } from '@/components/matching/ScheduleDeliveryModal';
 import { MatchingAlternative, MatchingSessionResult, StopAllocation } from '@/types';
 import { apiClient } from '@/lib/api-client';
 import {
@@ -19,6 +20,7 @@ import {
   TrendingUp,
   Clock,
   ShieldCheck,
+  Truck,
 } from 'lucide-react';
 
 // Demo realistic simulation alternatives for immediate testing & presentation
@@ -159,6 +161,7 @@ function MatchResultsContent() {
   const [alternatives, setAlternatives] = useState<MatchingAlternative[]>(DEMO_ALTERNATIVES);
   const [selectedRank, setSelectedRank] = useState<number>(1);
   const [activeStopIndex, setActiveStopIndex] = useState<number>(0);
+  const [schedulingStop, setSchedulingStop] = useState<StopAllocation | null>(null);
 
   // Fetch results from backend if available
   useEffect(() => {
@@ -386,16 +389,26 @@ function MatchResultsContent() {
                     ))}
                   </div>
 
-                  {/* Contact button */}
-                  <div className="mt-3 pt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-500">Kontak: {stop.contact}</span>
-                    <a
-                      href={`tel:${stop.contact}`}
-                      className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800"
-                    >
-                      <Phone className="w-3 h-3" />
-                      <span>Hubungi Pengelola</span>
-                    </a>
+                  {/* Actions for this stop */}
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <span className="text-slate-500 font-medium">Kontak: {stop.contact}</span>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`tel:${stop.contact}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold transition"
+                      >
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        <span>Telepon</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setSchedulingStop(stop)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition active:scale-[0.99]"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Jadwalkan Setoran</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -442,6 +455,14 @@ function MatchResultsContent() {
           </div>
         </div>
       </div>
+
+      {/* Citizen Schedule Delivery Modal */}
+      <ScheduleDeliveryModal
+        isOpen={Boolean(schedulingStop)}
+        stop={schedulingStop}
+        sessionId={sessionId}
+        onClose={() => setSchedulingStop(null)}
+      />
     </div>
   );
 }

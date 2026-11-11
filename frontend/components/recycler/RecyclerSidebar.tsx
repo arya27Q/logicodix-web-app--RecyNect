@@ -24,12 +24,46 @@ interface RecyclerSidebarProps {
 export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
   isOpen = true,
   onClose,
-  pendingDeliveriesCount = 3,
+  pendingDeliveriesCount = 0,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
   const [logoutError, setLogoutError] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [facilityName, setFacilityName] = useState('Mitra Pengelola');
+  const [managementTypeLabel, setManagementTypeLabel] = useState('Gudang Daur Ulang');
+
+  React.useEffect(() => {
+    let isMounted = true;
+    apiClient<{ name: string; recycler?: { name?: string; managementType?: string } }>('/auth/me')
+      .then((data) => {
+        if (!isMounted || !data) return;
+        const facName = data.recycler?.name || data.name || 'Mitra Pengelola';
+        setFacilityName(facName);
+
+        const typeMap: Record<string, string> = {
+          bank_sampah: 'Bank Sampah Unit/Induk',
+          pengepul: 'Pengepul Berizin',
+          tps3r: 'Fasilitas TPS3R',
+          recycler_industry: 'Pabrik Daur Ulang',
+        };
+        const mType = data.recycler?.managementType;
+        if (mType && typeMap[mType]) {
+          setManagementTypeLabel(typeMap[mType]);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const getInitials = (str: string) => {
+    if (!str) return 'MP';
+    const parts = str.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return str.slice(0, 2).toUpperCase();
+  };
 
   const handleLogout = async () => {
     setLogoutError('');
@@ -184,15 +218,15 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
               onClick={onClose}
               className="flex items-center gap-2.5 min-w-0 group hover:opacity-90 transition"
             >
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/30 text-amber-400 font-bold flex items-center justify-center text-xs shrink-0 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
-                HD
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/30 text-amber-400 font-bold flex items-center justify-center text-xs shrink-0 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors uppercase">
+                {getInitials(facilityName)}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate group-hover:text-amber-400 transition-colors">
-                  PT Hijau Daur Perkasa
+                  {facilityName}
                 </p>
                 <p className="text-[10px] text-amber-400 font-semibold truncate">
-                  Pabrik Daur Ulang
+                  {managementTypeLabel}
                 </p>
               </div>
             </Link>

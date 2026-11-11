@@ -1,32 +1,109 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRecyclerMaterials } from '@/hooks/recycler/useRecyclerMaterials';
+import { useRecyclerIncoming } from '@/hooks/recycler/useRecyclerIncoming';
 import { MaterialPriceTable } from '@/components/recycler/MaterialPriceTable';
 import { RecyclerStatsCard } from '@/components/recycler/RecyclerStatsCard';
 import { RecyclerMaterialModal } from '@/components/recycler/RecyclerMaterialModal';
+import { DeleteConfirmModal } from '@/components/recycler/DeleteConfirmModal';
 import { MaterialMarginDiagram } from '@/components/recycler/MaterialMarginDiagram';
+import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 
 export default function RecyclerMaterialsPage() {
   const {
     materials,
-    allMaterials,
+    categories,
     activeCount,
     totalCount,
     searchQuery,
     setSearchQuery,
     toggleAccepting,
     saveMaterial,
-    deleteMaterial,
     openCreate,
     openEdit,
     isModalOpen,
     setIsModalOpen,
     editingMaterial,
+    deletingMaterial,
+    isDeleting,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    actionError,
+    setActionError,
+    successMessage,
+    setSuccessMessage,
   } = useRecyclerMaterials();
+
+  const { completedCount } = useRecyclerIncoming();
+
+  // Auto-dismiss notifikasi setelah beberapa detik
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, setSuccessMessage]);
+
+  useEffect(() => {
+    if (actionError) {
+      const timer = setTimeout(() => {
+        setActionError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionError, setActionError]);
 
   return (
     <div className="space-y-6">
+      {/* Notifikasi Pop-up Kustom (Bawaan Next.js di Tengah Layar) */}
+      {(successMessage || actionError) && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[92%] sm:w-auto animate-in fade-in slide-in-from-top-4 duration-200">
+          {successMessage && (
+            <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white/95 backdrop-blur-md border border-emerald-500/30 text-slate-800 shadow-2xl shadow-emerald-950/15 ring-1 ring-emerald-500/20">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-slate-900">Operasi Berhasil</span>
+                <span className="text-xs text-slate-600 font-medium">{successMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSuccessMessage(null)}
+                className="p-1.5 ml-3 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
+                aria-label="Tutup notifikasi"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {actionError && (
+            <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-white/95 backdrop-blur-md border border-rose-500/30 text-slate-800 shadow-2xl shadow-rose-950/15 ring-1 ring-rose-500/20">
+              <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-bold text-rose-900">Perhatian</span>
+                <span className="text-xs text-slate-600 font-medium">{actionError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActionError(null)}
+                className="p-1.5 ml-3 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
+                aria-label="Tutup notifikasi"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -45,12 +122,12 @@ export default function RecyclerMaterialsPage() {
       <RecyclerStatsCard
         activeMaterials={activeCount}
         totalMaterials={totalCount}
-        completedPickups={142}
+        completedPickups={140 + completedCount}
         rating={4.9}
       />
 
       {/* Visual Margin & Market Benchmark Spread Diagram */}
-      <MaterialMarginDiagram />
+      <MaterialMarginDiagram materials={materials} />
 
       <MaterialPriceTable
         materials={materials}
@@ -59,7 +136,7 @@ export default function RecyclerMaterialsPage() {
         onToggleAccepting={toggleAccepting}
         onOpenCreate={openCreate}
         onOpenEdit={openEdit}
-        onDelete={deleteMaterial}
+        onDelete={requestDelete}
       />
 
       {/* Create / Edit Material Modal */}
@@ -68,6 +145,16 @@ export default function RecyclerMaterialsPage() {
         onClose={() => setIsModalOpen(false)}
         material={editingMaterial}
         onSave={saveMaterial}
+        categories={categories}
+      />
+
+      {/* Custom Confirmation Dialog for Delete (Posisi di Tengah Layar) */}
+      <DeleteConfirmModal
+        isOpen={Boolean(deletingMaterial)}
+        material={deletingMaterial}
+        isDeleting={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </div>
   );

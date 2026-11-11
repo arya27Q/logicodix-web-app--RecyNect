@@ -89,11 +89,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         {/* Brand / Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between">
+        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between shrink-0">
           <Link href="/admin" className="flex items-center gap-2.5 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-extrabold shadow-sm">
               <ShieldCheck className="w-5 h-5 text-slate-950" />
@@ -181,7 +181,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
 
         {/* User Profile & Logout Bottom Bar */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/40">
+        <div className="p-3 border-t border-slate-800 bg-slate-950/40 shrink-0">
           {logoutError && <p role="alert" className="mb-2 px-2 text-xs text-rose-300">{logoutError}</p>}
           <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
             <Link

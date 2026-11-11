@@ -146,12 +146,12 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:static top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-50 transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-800">
+        <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-800 shrink-0">
           <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
             <Store className="w-5 h-5" />
           </div>
@@ -232,7 +232,7 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
         </div>
 
         {/* User Profile & Logout Bottom Bar */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/40">
+        <div className="p-3 border-t border-slate-800 bg-slate-950/40 shrink-0">
           {logoutError && <p role="alert" className="mb-2 px-2 text-xs text-rose-300">{logoutError}</p>}
           <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
             <Link
@@ -244,7 +244,7 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
                 {profile.initials}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate group-hover:text-amber-400 transition-colors">
+                <p className="text-xs font-bold text-white truncate group-hover:text-amber-400 transition-colors capitalize">
                   {profile.facilityName}
                 </p>
                 <p className="text-[10px] text-amber-400 font-semibold truncate">

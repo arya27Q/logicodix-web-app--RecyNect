@@ -5,14 +5,19 @@ import { LineChart, BarChart3, TrendingUp, ArrowUpRight, Warehouse } from 'lucid
 
 export interface DailyPoint {
   day: string;
+  volumeKg?: number;
   volumeTon: number;
+  payoutRp?: number;
   payoutJuta: number;
+  displayVolume?: string;
+  displayPayout?: string;
   x: number;
   y: number;
 }
 
 export interface StorageCategory {
   name: string;
+  kg?: number;
   ton: number;
   capacityTon: number;
   percent: number;
@@ -155,7 +160,7 @@ export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = (
               Volume Masuk
             </span>
             <span className="font-extrabold text-emerald-700 text-sm tabular-nums">
-              {activeDay.volumeTon} Ton
+              {activeDay.displayVolume || (activeDay.volumeTon > 0 ? `${activeDay.volumeTon} Ton` : '0 Kg')}
             </span>
           </div>
           <div>
@@ -163,7 +168,7 @@ export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = (
               Total Pembayaran
             </span>
             <span className="font-extrabold text-slate-900 text-sm tabular-nums">
-              Rp {activeDay.payoutJuta} Jt
+              {activeDay.displayPayout || (activeDay.payoutJuta > 0 ? `Rp ${activeDay.payoutJuta} Jt` : 'Rp 0')}
             </span>
           </div>
         </div>
@@ -403,7 +408,7 @@ export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = (
               <div className="flex items-center justify-between text-[11px]">
                 <span className="font-semibold text-slate-700">{item.name}</span>
                 <span className="font-bold text-slate-900 tabular-nums">
-                  {item.ton} / {item.capacityTon}T ({item.percent}%)
+                  {item.kg !== undefined && item.kg > 0 ? `${item.kg} Kg` : `${item.ton} Ton`} / {item.capacityTon}T ({item.percent}%)
                 </span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">

@@ -25,7 +25,9 @@ export default function RecyclerDashboardPage() {
   const kpis = [
     {
       label: 'Sampah Terserap Bulan Ini',
-      value: `${(stats.intakeThisMonthKg / 1000).toFixed(1)} Ton`,
+      value: stats.intakeThisMonthKg >= 1000
+        ? `${(stats.intakeThisMonthKg / 1000).toFixed(2)} Ton`
+        : `${stats.intakeThisMonthKg.toLocaleString('id-ID')} Kg`,
       subtext: `Dari ${stats.activeCitizensServed} transaksi warga`,
       icon: <Scale className="w-5 h-5 text-emerald-600" />,
       bg: 'bg-emerald-50/60 border-emerald-200/80',
@@ -33,8 +35,10 @@ export default function RecyclerDashboardPage() {
     },
     {
       label: 'Estimasi Payout ke Warga',
-      value: `Rp ${(stats.totalPayoutRp / 1000000).toFixed(1)} Jt`,
-      subtext: 'Pembayaran setoran selesai',
+      value: stats.totalPayoutRp >= 1000000
+        ? `Rp ${(stats.totalPayoutRp / 1000000).toFixed(2)} Jt`
+        : `Rp ${stats.totalPayoutRp.toLocaleString('id-ID')}`,
+      subtext: stats.activeCitizensServed > 0 ? `${stats.activeCitizensServed} setoran selesai ditimbang` : 'Pembayaran setoran selesai',
       icon: <Coins className="w-5 h-5 text-amber-600" />,
       bg: 'bg-amber-50/60 border-amber-200/80',
       href: '/pengelola/incoming',
@@ -42,7 +46,7 @@ export default function RecyclerDashboardPage() {
     {
       label: 'Kapasitas Gudang',
       value: `${stats.warehouseCapacityPercent}%`,
-      subtext: `${stats.totalStorageTon} Ton dari batas ${stats.maxCapacityTon} Ton`,
+      subtext: `${stats.totalStorageTon >= 1 ? `${stats.totalStorageTon} Ton` : `${stats.intakeThisMonthKg} Kg`} dari batas ${stats.maxCapacityTon} Ton`,
       icon: <Warehouse className="w-5 h-5 text-indigo-600" />,
       bg: 'bg-indigo-50/60 border-indigo-200/80',
       href: '/pengelola',
@@ -50,7 +54,7 @@ export default function RecyclerDashboardPage() {
     {
       label: 'Antrean Setoran Hari Ini',
       value: `${stats.pendingDeliveriesCount} Antrean`,
-      subtext: 'Warga menuju lokasi gudang',
+      subtext: stats.pendingDeliveriesCount > 0 ? 'Warga menuju lokasi gudang' : 'Belum ada antrean baru',
       icon: <Truck className="w-5 h-5 text-sky-600" />,
       bg: 'bg-sky-50/60 border-sky-200/80',
       href: '/pengelola/incoming',

@@ -33,28 +33,28 @@ export interface RecyclerKPIs {
 }
 
 const DEFAULT_STATS: RecyclerKPIs = {
-  intakeThisMonthKg: 18450,
-  totalPayoutRp: 64200000,
-  warehouseCapacityPercent: 72,
-  totalStorageTon: 18.5,
+  intakeThisMonthKg: 0,
+  totalPayoutRp: 0,
+  warehouseCapacityPercent: 0,
+  totalStorageTon: 0,
   maxCapacityTon: 25.0,
-  activeCitizensServed: 142,
+  activeCitizensServed: 0,
   pendingDeliveriesCount: 0,
   satisfactionRating: 4.9,
   dailyTrend: [
-    { day: 'Sen', volumeTon: 2.1, payoutJuta: 7.2, x: 50, y: 117 },
-    { day: 'Sel', volumeTon: 2.8, payoutJuta: 9.6, x: 133, y: 96 },
-    { day: 'Rab', volumeTon: 3.4, payoutJuta: 11.8, x: 216, y: 78 },
-    { day: 'Kam', volumeTon: 3.1, payoutJuta: 10.5, x: 300, y: 87 },
-    { day: 'Jum', volumeTon: 4.2, payoutJuta: 14.7, x: 383, y: 54 },
-    { day: 'Sab', volumeTon: 4.8, payoutJuta: 16.9, x: 466, y: 36 },
-    { day: 'Min', volumeTon: 1.5, payoutJuta: 5.2, x: 550, y: 135 },
+    { day: 'Sen', volumeTon: 0, payoutJuta: 0, x: 50, y: 180 },
+    { day: 'Sel', volumeTon: 0, payoutJuta: 0, x: 133, y: 180 },
+    { day: 'Rab', volumeTon: 0, payoutJuta: 0, x: 216, y: 180 },
+    { day: 'Kam', volumeTon: 0, payoutJuta: 0, x: 300, y: 180 },
+    { day: 'Jum', volumeTon: 0, payoutJuta: 0, x: 383, y: 180 },
+    { day: 'Sab', volumeTon: 0, payoutJuta: 0, x: 466, y: 180 },
+    { day: 'Min', volumeTon: 0, payoutJuta: 0, x: 550, y: 180 },
   ],
   storageBreakdown: [
-    { name: 'Kardus & Karton', ton: 8.2, capacityTon: 10.0, percent: 82, color: '#f59e0b' },
-    { name: 'Botol Plastik PET', ton: 6.1, capacityTon: 8.0, percent: 76, color: '#10b981' },
-    { name: 'Logam & Besi', ton: 2.8, capacityTon: 4.0, percent: 70, color: '#64748b' },
-    { name: 'Minyak Jelantah', ton: 1.4, capacityTon: 3.0, percent: 46, color: '#6366f1' },
+    { name: 'Kardus & Karton', ton: 0, capacityTon: 10.0, percent: 0, color: '#f59e0b' },
+    { name: 'Botol Plastik PET', ton: 0, capacityTon: 8.0, percent: 0, color: '#10b981' },
+    { name: 'Logam & Besi', ton: 0, capacityTon: 4.0, percent: 0, color: '#64748b' },
+    { name: 'Minyak Jelantah', ton: 0, capacityTon: 3.0, percent: 0, color: '#6366f1' },
   ],
 };
 
@@ -64,16 +64,16 @@ export function useRecyclerStats() {
 
   const applyData = useCallback((data: RecyclerKPIs) => {
     setStats({
-      intakeThisMonthKg: Number(data.intakeThisMonthKg) || DEFAULT_STATS.intakeThisMonthKg,
-      totalPayoutRp: Number(data.totalPayoutRp) || DEFAULT_STATS.totalPayoutRp,
-      warehouseCapacityPercent: Number(data.warehouseCapacityPercent) || DEFAULT_STATS.warehouseCapacityPercent,
-      totalStorageTon: Number(data.totalStorageTon) || DEFAULT_STATS.totalStorageTon,
-      maxCapacityTon: Number(data.maxCapacityTon) || DEFAULT_STATS.maxCapacityTon,
-      activeCitizensServed: Number(data.activeCitizensServed) || DEFAULT_STATS.activeCitizensServed,
-      pendingDeliveriesCount: Number(data.pendingDeliveriesCount) || 0,
-      satisfactionRating: Number(data.satisfactionRating) || DEFAULT_STATS.satisfactionRating,
-      dailyTrend: Array.isArray(data.dailyTrend) && data.dailyTrend.length > 0 ? data.dailyTrend : DEFAULT_STATS.dailyTrend,
-      storageBreakdown: Array.isArray(data.storageBreakdown) && data.storageBreakdown.length > 0 ? data.storageBreakdown : DEFAULT_STATS.storageBreakdown,
+      intakeThisMonthKg: data.intakeThisMonthKg !== undefined ? Number(data.intakeThisMonthKg) : 0,
+      totalPayoutRp: data.totalPayoutRp !== undefined ? Number(data.totalPayoutRp) : 0,
+      warehouseCapacityPercent: data.warehouseCapacityPercent !== undefined ? Number(data.warehouseCapacityPercent) : 0,
+      totalStorageTon: data.totalStorageTon !== undefined ? Number(data.totalStorageTon) : 0,
+      maxCapacityTon: data.maxCapacityTon !== undefined ? Number(data.maxCapacityTon) : 25.0,
+      activeCitizensServed: data.activeCitizensServed !== undefined ? Number(data.activeCitizensServed) : 0,
+      pendingDeliveriesCount: data.pendingDeliveriesCount !== undefined ? Number(data.pendingDeliveriesCount) : 0,
+      satisfactionRating: data.satisfactionRating !== undefined ? Number(data.satisfactionRating) : 4.9,
+      dailyTrend: Array.isArray(data.dailyTrend) ? data.dailyTrend : DEFAULT_STATS.dailyTrend,
+      storageBreakdown: Array.isArray(data.storageBreakdown) ? data.storageBreakdown : DEFAULT_STATS.storageBreakdown,
     });
   }, []);
 

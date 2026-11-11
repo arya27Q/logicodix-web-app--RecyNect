@@ -1,10 +1,23 @@
-import type { AuthRole } from '../security/session.js';
+import { AuthRole, getSessionClaims } from '../security/session.js';
 import type { NextFunction, Request, Response } from 'express';
 import { UserRole } from '@prisma/client';
 import { db } from '../config/database.js';
 
 export const roleMiddleware = (...allowedRoles: AuthRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
+    // Jika auth belum terpasang atau role saat ini tidak cocok,
+    // coba periksa role-specific session cookie yang cocok dengan allowedRoles
+    if (!req.auth || !allowedRoles.includes(req.auth.role)) {
+      for (const role of allowedRoles) {
+        const roleClaims = getSessionClaims(req, role);
+        if (roleClaims && allowedRoles.includes(roleClaims.role)) {
+          req.auth = roleClaims;
+          (req as any).user = { id: roleClaims.sub, role: roleClaims.role };
+          break;
+        }
+      }
+    }
+
     if (!req.auth) {
       return res.status(401).json({ status: 'error', message: 'Autentikasi diperlukan.' });
     }

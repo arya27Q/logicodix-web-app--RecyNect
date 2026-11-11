@@ -46,8 +46,14 @@ export class AuthController {
     return sendSuccess(res, account, 'Sesi aktif');
   };
 
-  public logout = (_req: Request, res: Response) => {
-    clearSessionCookie(res);
+  public logout = (req: Request, res: Response) => {
+    const portal = String(req.headers['x-portal'] || '').toLowerCase();
+    let targetRole: 'user' | 'recycler' | 'admin' | undefined;
+    if (portal === 'pengelola' || portal === 'recycler') targetRole = 'recycler';
+    else if (portal === 'admin') targetRole = 'admin';
+    else if (portal === 'warga' || portal === 'user') targetRole = 'user';
+
+    clearSessionCookie(res, targetRole);
     return sendSuccess(res, null, 'Logout berhasil');
   };
 

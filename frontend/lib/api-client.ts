@@ -10,6 +10,17 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
   const headers = new Headers(options.headers);
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
+  if (typeof window !== 'undefined' && !headers.has('X-Portal')) {
+    const path = window.location.pathname;
+    if (path.startsWith('/pengelola')) {
+      headers.set('X-Portal', 'pengelola');
+    } else if (path.startsWith('/admin')) {
+      headers.set('X-Portal', 'admin');
+    } else {
+      headers.set('X-Portal', 'warga');
+    }
+  }
+
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,

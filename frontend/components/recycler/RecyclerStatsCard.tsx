@@ -13,8 +13,8 @@ interface RecyclerStatsCardProps {
 export const RecyclerStatsCard: React.FC<RecyclerStatsCardProps> = ({
   activeMaterials,
   totalMaterials,
-  completedPickups = 142,
-  rating = 4.9,
+  completedPickups = 0,
+  rating = 0,
 }) => {
   const stats = [
     {
@@ -27,14 +27,14 @@ export const RecyclerStatsCard: React.FC<RecyclerStatsCardProps> = ({
     {
       label: 'Total Setoran Selesai',
       value: `${completedPickups}`,
-      subtext: 'Bulan ini',
+      subtext: completedPickups > 0 ? 'Bulan ini' : 'Belum ada setoran',
       icon: <CheckCircle2 className="w-5 h-5 text-sky-600" />,
       bg: 'bg-sky-50 border-sky-200/60',
     },
     {
       label: 'Rating Kepuasan',
-      value: `${rating} / 5.0`,
-      subtext: 'Berdasarkan 98 ulasan warga',
+      value: rating > 0 ? `${rating.toFixed(1)} / 5.0` : 'Baru',
+      subtext: rating > 0 ? 'Berdasarkan ulasan warga' : 'Belum ada ulasan warga',
       icon: <TrendingUp className="w-5 h-5 text-amber-600" />,
       bg: 'bg-amber-50 border-amber-200/60',
     },

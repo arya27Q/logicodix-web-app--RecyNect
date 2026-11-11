@@ -147,66 +147,78 @@ export default function RecyclerDashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {deliveries.slice(0, 3).map((item) => (
-            <div
-              key={item.id}
-              className="card-surface rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-4"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-mono text-xs font-bold text-slate-900">
-                    {item.id}
-                  </span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200">
-                    {item.status === 'selesai' ? 'Selesai' : 'Menuju Lokasi'}
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-slate-900 text-sm">
-                  {item.citizenName}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-slate-400" />
-                  <span>{item.citizenPhone}</span>
-                </p>
-
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs mt-3 space-y-1">
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Estimasi Muatan:</span>
-                    <span className="font-bold text-slate-900">{item.totalEstimatedWeight}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Estimasi Payout:</span>
-                    <span className="font-extrabold text-emerald-700">
-                      Rp {item.estimatedPayoutRp.toLocaleString('id-ID')}
+        {deliveries.length === 0 ? (
+          <div className="card-surface rounded-2xl p-8 border border-slate-200/80 shadow-2xs text-center space-y-2">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center mx-auto">
+              <Truck className="w-5 h-5" />
+            </div>
+            <p className="text-sm font-bold text-slate-800">Belum Ada Antrean Warga Hari Ini</p>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Setoran sampah yang dijadwalkan oleh warga dari modul pencocokan (Match) akan muncul di sini secara otomatis.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {deliveries.slice(0, 3).map((item) => (
+              <div
+                key={item.id}
+                className="card-surface rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="font-mono text-xs font-bold text-slate-900">
+                      {item.id}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200">
+                      {item.status === 'selesai' ? 'Selesai' : 'Menuju Lokasi'}
                     </span>
                   </div>
+                  <h3 className="font-extrabold text-slate-900 text-sm">
+                    {item.citizenName}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-slate-400" />
+                    <span>{item.citizenPhone}</span>
+                  </p>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs mt-3 space-y-1">
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Estimasi Muatan:</span>
+                      <span className="font-bold text-slate-900">{item.totalEstimatedWeight}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Estimasi Payout:</span>
+                      <span className="font-extrabold text-emerald-700">
+                        Rp {item.estimatedPayoutRp.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {item.arrivalTime}
+                  </span>
+                  {item.status !== 'selesai' ? (
+                    <button
+                      type="button"
+                      onClick={() => confirmWeighing(item.id)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Konfirmasi Timbang</span>
+                    </button>
+                  ) : (
+                    <span className="text-emerald-700 font-bold text-xs flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Selesai</span>
+                    </span>
+                  )}
                 </div>
               </div>
-
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {item.arrivalTime}
-                </span>
-                {item.status !== 'selesai' ? (
-                  <button
-                    type="button"
-                    onClick={() => confirmWeighing(item.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Konfirmasi Timbang</span>
-                  </button>
-                ) : (
-                  <span className="text-emerald-700 font-bold text-xs flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Selesai</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

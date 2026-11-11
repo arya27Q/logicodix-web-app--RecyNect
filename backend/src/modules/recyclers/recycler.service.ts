@@ -84,14 +84,14 @@ export class RecyclerService {
     const recycler = await this.recyclerRepository.findRecyclerByUserId(userId);
     if (!recycler) {
       return {
-        intakeThisMonthKg: 18450,
-        totalPayoutRp: 64200000,
-        activeCitizensServed: 142,
-        warehouseCapacityPercent: 72,
-        totalStorageTon: 18.5,
+        intakeThisMonthKg: 0,
+        totalPayoutRp: 0,
+        activeCitizensServed: 0,
+        warehouseCapacityPercent: 0,
+        totalStorageTon: 0,
         maxCapacityTon: 25.0,
         pendingDeliveriesCount: 0,
-        satisfactionRating: 4.9,
+        satisfactionRating: 0,
         dailyTrend: [],
         storageBreakdown: [],
       };

@@ -125,8 +125,8 @@ export default function RecyclerMaterialsPage() {
       <RecyclerStatsCard
         activeMaterials={activeCount}
         totalMaterials={totalCount}
-        completedPickups={140 + completedCount}
-        rating={4.9}
+        completedPickups={completedCount}
+        rating={completedCount > 0 ? 5.0 : 0}
       />
 
       {/* Visual Margin & Market Benchmark Spread Diagram */}

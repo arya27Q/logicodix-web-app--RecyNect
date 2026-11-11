@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Phone, ShieldCheck, ArrowRight } from 'lucide-react';
 import { ManagementType } from '@/types';
+import { apiClient } from '@/lib/api-client';
 
 interface RecyclerPreview {
   id: string;
@@ -77,8 +78,44 @@ const DEMO_RECYCLERS: RecyclerPreview[] = [
 export default function RecyclersPage() {
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [recyclersList, setRecyclersList] = useState<RecyclerPreview[]>(DEMO_RECYCLERS);
 
-  const filtered = DEMO_RECYCLERS.filter((rec) => {
+  useEffect(() => {
+    let isMounted = true;
+    apiClient<any[]>('/recyclers')
+      .then((data) => {
+        if (!isMounted || !Array.isArray(data) || data.length === 0) return;
+        const typeLabelMap: Record<string, string> = {
+          bank_sampah: 'Bank Sampah Unit/Induk',
+          pengepul: 'Pengepul Berizin',
+          tps3r: 'Fasilitas TPS3R',
+          recycler_industry: 'Pabrik Daur Ulang',
+        };
+        const mapped: RecyclerPreview[] = data.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: r.managementType || 'pengepul',
+          typeLabel: typeLabelMap[r.managementType] || 'Pengepul Berizin',
+          address: r.address || 'Alamat operasional',
+          contact: r.contact || '-',
+          distanceKm: 0,
+          materialsCount: r.materials?.length || 0,
+          sampleMaterials: Array.isArray(r.materials)
+            ? r.materials.map((m: any) => m.category?.name || 'Material').slice(0, 4)
+            : [],
+          isVerified: r.verificationStatus === 'verified',
+          hours: r.operatingHours || 'Senin - Sabtu (08:00 - 17:00)',
+        }));
+        setRecyclersList(mapped);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filtered = recyclersList.filter((rec) => {
     const matchesSearch =
       rec.name.toLowerCase().includes(search.toLowerCase()) ||
       rec.address.toLowerCase().includes(search.toLowerCase());

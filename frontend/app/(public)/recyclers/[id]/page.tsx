@@ -267,43 +267,71 @@ async function RecyclerDetailContent({
 }) {
   const { id } = await params;
 
-  // Lookup data pengelola berdasarkan ID yang diklik
-  const recycler = RECYCLERS_DATA[id] || {
-    id,
-    name: 'Pengelola Mitra Daur Ulang',
-    type: 'Mitra Pengelola Berizin',
-    badge: 'Mitra Terverifikasi Sistem',
-    address: 'Area Layanan Kota Bandung & Sekitarnya',
-    contact: '081200000000',
-    operatingHours: 'Senin - Sabtu (08:00 - 16:00)',
-    verifiedDate: '2026',
-    vehicleAccess: 'Akses Kendaraan Standar',
-    description:
-      'Fasilitas pengolahan sampah daur ulang terdaftar pada platform RecyNect dengan komitmen penimbangan adil dan transparansi harga beli.',
-    paymentMethods: 'Pembayaran tunai langsung di lokasi atau transfer bank.',
-    materials: [
-      {
-        categoryId: 'cat-kardus',
-        name: 'Kardus / Karton Cokelat',
-        category: 'Kertas',
-        price: 2000,
-        unit: 'kg',
-        minQty: 2.0,
-        requirements: 'Kering dan diikat rapi',
-        isAvailable: true,
-      },
-      {
-        categoryId: 'cat-pet',
-        name: 'Botol Plastik PET Bening',
-        category: 'Plastik',
-        price: 3800,
-        unit: 'kg',
-        minQty: 2.0,
-        requirements: 'Bersih tanpa tutup botol',
-        isAvailable: true,
-      },
-    ],
+  // Coba ambil data riil dari backend API terlebih dahulu
+  let apiRecycler: any = null;
+  try {
+    const res = await fetch(`http://localhost:5000/api/recyclers/${id}`, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.status === 'success' && json.data) {
+        apiRecycler = json.data;
+      }
+    }
+  } catch {
+    // Abaikan jika server offline saat build time
+  }
+
+  const typeLabelMap: Record<string, string> = {
+    bank_sampah: 'Bank Sampah Unit/Induk',
+    pengepul: 'Pengepul Berizin',
+    tps3r: 'Fasilitas TPS3R',
+    recycler_industry: 'Pabrik Daur Ulang',
   };
+
+  // Lookup data pengelola berdasarkan API atau fallback DEMO data
+  const recycler: RecyclerDetail = apiRecycler
+    ? {
+        id: apiRecycler.id,
+        name: apiRecycler.name,
+        type: typeLabelMap[apiRecycler.managementType] || 'Pengepul Berizin',
+        badge: apiRecycler.verificationStatus === 'verified' ? 'Mitra Terverifikasi Resmi' : 'Mitra Terdaftar',
+        address: apiRecycler.address || 'Alamat operasional',
+        contact: apiRecycler.contact || '-',
+        operatingHours: apiRecycler.operatingHours || 'Senin - Sabtu (08:00 - 17:00)',
+        verifiedDate: 'Terverifikasi 2026',
+        vehicleAccess: 'Akses Motor, Gerobak, Mobil Pick-up & Truk',
+        description:
+          apiRecycler.description ||
+          'Fasilitas pengolahan sampah daur ulang mitra resmi RecyNect dengan komitmen penimbangan adil dan transparansi harga beli.',
+        paymentMethods: 'Pembayaran tunai langsung di tempat setelah penimbangan atau transfer instan.',
+        materials: Array.isArray(apiRecycler.materials)
+          ? apiRecycler.materials.map((m: any) => ({
+              categoryId: m.categoryId || m.id,
+              name: m.category?.name || m.name || 'Material Daur Ulang',
+              category: m.category?.name || 'Material',
+              price: Number(m.price || 0),
+              unit: m.unit || 'kg',
+              minQty: Number(m.minQuantity || 1),
+              requirements: m.qualityRequirements || 'Bersih dan terpilah rapi.',
+              isAvailable: m.isAvailable !== false,
+            }))
+          : [],
+      }
+    : (RECYCLERS_DATA[id] || {
+        id,
+        name: 'Pengelola Mitra Daur Ulang',
+        type: 'Mitra Pengelola Berizin',
+        badge: 'Mitra Terverifikasi Sistem',
+        address: 'Area Layanan Kota Bandung & Sekitarnya',
+        contact: '081200000000',
+        operatingHours: 'Senin - Sabtu (08:00 - 16:00)',
+        verifiedDate: '2026',
+        vehicleAccess: 'Akses Kendaraan Standar',
+        description:
+          'Fasilitas pengolahan sampah daur ulang terdaftar pada platform RecyNect dengan komitmen penimbangan adil dan transparansi harga beli.',
+        paymentMethods: 'Pembayaran tunai langsung di lokasi atau transfer bank.',
+        materials: [],
+      });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">

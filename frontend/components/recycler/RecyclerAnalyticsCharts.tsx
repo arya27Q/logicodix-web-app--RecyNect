@@ -32,37 +32,41 @@ interface RecyclerAnalyticsChartsProps {
   warehouseCapacityPercent?: number;
 }
 
-// Fallback jika belum selesai fetch dari database
+// Baseline data kosong riil sebelum ada transaksi
 const DEFAULT_DAILY_DATA: DailyPoint[] = [
-  { day: 'Sen', volumeTon: 2.1, payoutJuta: 7.2, x: 50, y: 117 },
-  { day: 'Sel', volumeTon: 2.8, payoutJuta: 9.6, x: 133, y: 96 },
-  { day: 'Rab', volumeTon: 3.4, payoutJuta: 11.8, x: 216, y: 78 },
-  { day: 'Kam', volumeTon: 3.1, payoutJuta: 10.5, x: 300, y: 87 },
-  { day: 'Jum', volumeTon: 4.2, payoutJuta: 14.7, x: 383, y: 54 },
-  { day: 'Sab', volumeTon: 4.8, payoutJuta: 16.9, x: 466, y: 36 },
-  { day: 'Min', volumeTon: 1.5, payoutJuta: 5.2, x: 550, y: 135 },
+  { day: 'Sen', volumeTon: 0, payoutJuta: 0, x: 50, y: 180 },
+  { day: 'Sel', volumeTon: 0, payoutJuta: 0, x: 133, y: 180 },
+  { day: 'Rab', volumeTon: 0, payoutJuta: 0, x: 216, y: 180 },
+  { day: 'Kam', volumeTon: 0, payoutJuta: 0, x: 300, y: 180 },
+  { day: 'Jum', volumeTon: 0, payoutJuta: 0, x: 383, y: 180 },
+  { day: 'Sab', volumeTon: 0, payoutJuta: 0, x: 466, y: 180 },
+  { day: 'Min', volumeTon: 0, payoutJuta: 0, x: 550, y: 180 },
 ];
 
 const DEFAULT_STORAGE_BREAKDOWN: StorageCategory[] = [
-  { name: 'Kardus & Karton', ton: 8.2, capacityTon: 10.0, percent: 82, color: '#f59e0b' },
-  { name: 'Botol Plastik PET', ton: 6.1, capacityTon: 8.0, percent: 76, color: '#10b981' },
-  { name: 'Logam & Besi', ton: 2.8, capacityTon: 4.0, percent: 70, color: '#64748b' },
-  { name: 'Minyak Jelantah', ton: 1.4, capacityTon: 3.0, percent: 46, color: '#6366f1' },
+  { name: 'Kardus & Karton', ton: 0, capacityTon: 10.0, percent: 0, color: '#f59e0b' },
+  { name: 'Botol Plastik PET', ton: 0, capacityTon: 8.0, percent: 0, color: '#10b981' },
+  { name: 'Logam & Besi', ton: 0, capacityTon: 4.0, percent: 0, color: '#64748b' },
+  { name: 'Minyak Jelantah', ton: 0, capacityTon: 3.0, percent: 0, color: '#6366f1' },
 ];
 
 export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = ({
   dailyData = DEFAULT_DAILY_DATA,
   storageBreakdown = DEFAULT_STORAGE_BREAKDOWN,
-  totalStorageTon = 18.5,
+  totalStorageTon = 0,
   maxCapacityTon = 25.0,
-  warehouseCapacityPercent = 74,
+  warehouseCapacityPercent = 0,
 }) => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   
   const points = dailyData && dailyData.length > 0 ? dailyData : DEFAULT_DAILY_DATA;
   const breakdown = storageBreakdown && storageBreakdown.length > 0 ? storageBreakdown : DEFAULT_STORAGE_BREAKDOWN;
 
-  const [activeIdx, setActiveIdx] = useState<number>(() => Math.max(0, points.length - 2));
+  const [activeIdx, setActiveIdx] = useState<number>(() => {
+    const today = new Date().getDay(); // 0 = Min, 1 = Sen, ..., 6 = Sab
+    const map = [6, 0, 1, 2, 3, 4, 5]; // Sen=0, Sel=1, Rab=2, Kam=3, Jum=4, Sab=5, Min=6
+    return map[today] ?? 0;
+  });
   const safeIdx = Math.min(activeIdx, points.length - 1);
   const activeDay = points[safeIdx] || points[0];
 

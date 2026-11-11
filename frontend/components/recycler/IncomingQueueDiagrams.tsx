@@ -58,21 +58,13 @@ function extractWeight(delivery: IncomingDelivery): number {
   return 0;
 }
 
-export const IncomingQueueDiagrams: React.FC<IncomingQueueDiagramsProps> = ({ deliveries }) => {
+export const IncomingQueueDiagrams: React.FC<IncomingQueueDiagramsProps> = ({ deliveries = [] }) => {
   // Hitung distribusi antrean riil dari daftar deliveries aktif/masuk
   const hourlyData = useMemo<HourlyQueueSlot[]>(() => {
-    if (!deliveries) {
-      return [
-        { timeRange: '08:00 - 10:00', startHour: 8, endHour: 10, count: 3, capacity: 6, density: 'sedang', totalKg: 120, citizens: ['Warga RT 01', 'Budi Santoso'] },
-        { timeRange: '10:00 - 12:00', startHour: 10, endHour: 12, count: 6, capacity: 6, density: 'tinggi', totalKg: 280, citizens: ['Santi Damayanti', 'Rian Hidayat'] },
-        { timeRange: '12:00 - 13:00', startHour: 12, endHour: 13, count: 1, capacity: 4, density: 'rendah', totalKg: 45, citizens: ['Joko Susilo'] },
-        { timeRange: '13:00 - 15:00', startHour: 13, endHour: 15, count: 5, capacity: 6, density: 'tinggi', totalKg: 210, citizens: ['Bank Sampah Dago'] },
-        { timeRange: '15:00 - 17:00', startHour: 15, endHour: 17, count: 2, capacity: 5, density: 'rendah', totalKg: 85, citizens: ['Armada RW 07'] },
-      ];
-    }
+    const list = Array.isArray(deliveries) ? deliveries : [];
 
     return TIME_SLOT_DEFS.map((slot) => {
-      const slotDeliveries = deliveries.filter((d) => {
+      const slotDeliveries = list.filter((d) => {
         // Abaikan transaksi yang berstatus dibatalkan
         if (d.status === 'batal') return false;
         const h = extractHourFromArrivalTime(d.arrivalTime);
@@ -98,10 +90,8 @@ export const IncomingQueueDiagrams: React.FC<IncomingQueueDiagramsProps> = ({ de
     });
   }, [deliveries]);
 
-  // Pilih slot aktif: prioritaskan slot dengan antrean terbanyak atau default slot ke-1
-  const [selectedSlotIdx, setSelectedSlotIdx] = useState<number>(() => {
-    return 1;
-  });
+  // Pilih slot aktif: prioritaskan slot dengan antrean terbanyak atau slot ke-0 jika antrean kosong
+  const [selectedSlotIdx, setSelectedSlotIdx] = useState<number>(0);
 
   const activeSlot = hourlyData[selectedSlotIdx] || hourlyData[0];
 

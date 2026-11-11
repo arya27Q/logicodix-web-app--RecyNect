@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { AdminService } from './admin.service.js';
 import { setSessionCookie } from '../../security/session.js';
+import { clearRateLimit } from '../../middlewares/rate-limit.middleware.js';
 import { sendSuccess } from '../../utils/api-response.js';
 
 export class AdminController {
@@ -8,6 +9,7 @@ export class AdminController {
 
   public login = async (req: Request, res: Response) => {
     const result = await this.adminService.login(req.body);
+    clearRateLimit(req.ip || req.socket.remoteAddress);
     setSessionCookie(res, result.token);
     return sendSuccess(res, result.admin, 'Login administrator berhasil');
   };

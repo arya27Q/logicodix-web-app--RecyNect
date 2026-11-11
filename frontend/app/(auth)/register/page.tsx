@@ -14,9 +14,6 @@ import {
   ArrowRight,
   Sparkles,
   CheckCircle2,
-  ShieldCheck,
-  Store,
-  Layers,
   AlertCircle,
 } from 'lucide-react';
 
@@ -52,7 +49,12 @@ export default function RegisterPage() {
         method: 'POST',
         body: JSON.stringify({ name: fullName, email, phone, password }),
       });
-      router.replace('/match');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('recynect-auth-changed'));
+      }
+      const target = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('redirect')) || '/match';
+      router.replace(target);
+      router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Pendaftaran gagal. Coba lagi.');
     } finally {

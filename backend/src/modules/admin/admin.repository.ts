@@ -9,12 +9,49 @@ const publicAdminFields = {
 } as const;
 
 export class AdminRepository {
-  public findByEmail(email: string) {
-    return db.admin.findUnique({ where: { email } });
+  public async findByEmail(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const rawEmail = email.trim();
+
+    let admin = await db.admin.findUnique({ where: { email: cleanEmail } });
+    if (admin) return admin;
+
+    if (rawEmail !== cleanEmail) {
+      admin = await db.admin.findUnique({ where: { email: rawEmail } });
+      if (admin) return admin;
+    }
+
+    return db.admin.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { email: rawEmail },
+        ],
+      },
+    });
   }
 
-  public findUserByEmail(email: string) {
-    return db.user.findUnique({ where: { email }, select: { id: true, role: true } });
+  public async findUserByEmail(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const rawEmail = email.trim();
+
+    let user = await db.user.findUnique({ where: { email: cleanEmail }, select: { id: true, role: true } });
+    if (user) return user;
+
+    if (rawEmail !== cleanEmail) {
+      user = await db.user.findUnique({ where: { email: rawEmail }, select: { id: true, role: true } });
+      if (user) return user;
+    }
+
+    return db.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { email: rawEmail },
+        ],
+      },
+      select: { id: true, role: true },
+    });
   }
 
   public findById(id: string) {

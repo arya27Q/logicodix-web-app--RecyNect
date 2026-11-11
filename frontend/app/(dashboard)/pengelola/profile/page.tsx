@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api-client';
 import {
   Building2,
   MapPin,
@@ -19,40 +20,60 @@ import {
   EyeOff,
   ExternalLink,
   KeyRound,
-  Warehouse,
+  AlertCircle,
 } from 'lucide-react';
+
+interface CurrentRecyclerSession {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  recycler?: {
+    id: string;
+    name: string;
+    managementType: string;
+    description?: string;
+    address: string;
+    contact: string;
+    operatingHours?: string;
+    latitude?: number;
+    longitude?: number;
+    verificationStatus?: string;
+  } | null;
+}
 
 export default function RecyclerProfilePage() {
   const [activeTab, setActiveTab] = useState<'info' | 'location' | 'legal' | 'security'>('info');
 
   // Form states - Facility Info
-  const [companyName, setCompanyName] = useState('PT Hijau Daur Perkasa');
-  const [facilityType, setFacilityType] = useState('pabrik');
-  const [picName, setPicName] = useState('Hendri Prasetyo');
-  const [phone, setPhone] = useState('+62 813-8822-9100');
-  const [email, setEmail] = useState('operasional@hijauperkasa.co.id');
-  const [operatingHours, setOperatingHours] = useState('Senin - Sabtu: 08:00 - 17:00');
+  const [companyName, setCompanyName] = useState('Bank Sampah Berkah Mandiri');
+  const [facilityType, setFacilityType] = useState('bank_sampah');
+  const [picName, setPicName] = useState('Pengelola Bank Sampah Berkah');
+  const [phone, setPhone] = useState('081298765432');
+  const [email, setEmail] = useState('mitra@recynect.id');
+  const [operatingHours, setOperatingHours] = useState('Senin - Sabtu: 08:00 - 15:00');
   const [facilityBio, setFacilityBio] = useState(
-    'Fasilitas daur ulang berkapasitas 25 Ton dilengkapi mesin press hidrolik, shredder plastik PET/HDPE, dan jembatan timbang digital bersertifikat metrologi resmi.'
+    'Fasilitas bank sampah dan pengolahan material daur ulang binaan lingkungan, melayani tabungan dan pencairan tunai langsung warga.'
   );
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Location & Logistics states
   const [warehouseAddress, setWarehouseAddress] = useState(
-    'Jl. Industri Hijau No. 45, Kawasan Industri Jababeka Tahap II, Cikarang, Bekasi, Jawa Barat 17530'
+    'Jl. Merdeka No. 12, Kelurahan Sukajaya, Bandung'
   );
-  const [latitude, setLatitude] = useState('-6.291244');
-  const [longitude, setLongitude] = useState('107.142831');
-  const [maxCapacityTons, setMaxCapacityTons] = useState('25');
-  const [truckAccess, setTruckAccess] = useState('Truk Fuso & Tronton, Engkel, Pick-up, Roda Tiga');
-  const [scaleType, setScaleType] = useState('Jembatan Timbang Digital 30 Ton (Tera Metrologi 2026)');
+  const [latitude, setLatitude] = useState('-6.914744');
+  const [longitude, setLongitude] = useState('107.60981');
+  const [truckAccess, setTruckAccess] = useState('Motor Roda Tiga, Mobil Pickup L300, dan Truk Engkel');
+  const [scaleType, setScaleType] = useState('Timbangan Digital Duduk & Gantung (Tera Metrologi 2026)');
 
   // Legal & Payout states
-  const [nib, setNIB] = useState('9120008231092');
-  const [envPermit, setEnvPermit] = useState('Izin Lingkungan SPPL No. 660.1/044/IL/2024');
+  const [nib] = useState('9120008231092');
+  const [envPermit] = useState('Izin Lingkungan SPPL No. 660.1/044/IL/2026');
   const [bankName, setBankName] = useState('Bank Central Asia (BCA)');
   const [bankAccountNumber, setBankAccountNumber] = useState('8820-1928-3310');
-  const [bankAccountHolder, setBankAccountHolder] = useState('PT Hijau Daur Perkasa');
+  const [bankAccountHolder, setBankAccountHolder] = useState('Pengelola Bank Sampah Berkah');
 
   // Security states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -61,24 +82,106 @@ export default function RecyclerProfilePage() {
   const [weighingPin, setWeighingPin] = useState('8891');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  // Fetch real profile data on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProfile() {
+      try {
+        const data = await apiClient<CurrentRecyclerSession>('/auth/me');
+        if (data && isMounted) {
+          if (data.name) setPicName(data.name);
+          if (data.email) setEmail(data.email);
+          if (data.phone) setPhone(data.phone);
+
+          if (data.recycler) {
+            if (data.recycler.name) setCompanyName(data.recycler.name);
+            if (data.recycler.managementType) setFacilityType(data.recycler.managementType);
+            if (data.recycler.address) setWarehouseAddress(data.recycler.address);
+            if (data.recycler.contact) setPhone(data.recycler.contact);
+            if (data.recycler.operatingHours) setOperatingHours(data.recycler.operatingHours);
+            if (data.recycler.description) setFacilityBio(data.recycler.description);
+            if (data.recycler.latitude) setLatitude(data.recycler.latitude.toString());
+            if (data.recycler.longitude) setLongitude(data.recycler.longitude.toString());
+          }
+        }
+      } catch {
+        // Fallback ke default demo
+      }
+    }
+    loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    setSaveError('');
+
+    try {
+      await apiClient('/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: picName,
+          phone,
+          facilityName: companyName,
+          managementType: facilityType,
+          address: warehouseAddress,
+          operatingHours,
+          description: facilityBio,
+        }),
+      });
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Gagal menyimpan profil.');
+    }
   };
 
-  const handleSaveSecurity = (e: React.FormEvent) => {
+  const handleSaveSecurity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword && newPassword !== confirmPassword) {
-      alert('Konfirmasi kata sandi baru tidak cocok.');
+    setPasswordError('');
+
+    if (!currentPassword || !newPassword) {
+      setPasswordError('Mohon isi kata sandi saat ini dan kata sandi baru.');
       return;
     }
-    setPasswordSuccess(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setPasswordSuccess(false), 3000);
+    if (newPassword.length < 8) {
+      setPasswordError('Kata sandi baru minimal 8 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Konfirmasi kata sandi baru tidak cocok.');
+      return;
+    }
+
+    try {
+      await apiClient('/auth/password', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Gagal memperbarui kata sandi. Pastikan kata sandi lama benar.');
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return 'MP';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -106,31 +209,31 @@ export default function RecyclerProfilePage() {
       <div className="card-surface rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950 text-amber-400 font-extrabold text-2xl flex items-center justify-center border-2 border-slate-700 shadow-md shrink-0">
-            HD
+            {getInitials(companyName)}
           </div>
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-extrabold text-slate-900">{companyName}</h2>
-              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                MITRA-REC-001
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 uppercase">
+                {facilityType.replace('_', ' ')}
               </span>
             </div>
             <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-amber-600" />
-              <span>Pabrik Pengolahan & Daur Ulang Plastik / Kertas</span>
+              <span>PIC: {picName} ({email})</span>
             </p>
             <p className="text-xs text-slate-500 font-medium">
-              Bergabung sejak 10 Februari 2025 • Rating 4.9 dari 142 Setoran Warga
+              Fasilitas Terhubung Sistem RecyNect • Telepon/WA: {phone}
             </p>
           </div>
         </div>
 
         <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-6 text-xs text-slate-500 gap-1 shrink-0">
           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            Kapasitas Fasilitas
+            Jam Layanan Timbangan
           </span>
-          <span className="text-sm font-extrabold text-slate-900">25 Ton / Siklus</span>
-          <span className="text-[11px] text-emerald-700 font-semibold">Gudang Buka (08:00 - 17:00)</span>
+          <span className="text-sm font-extrabold text-slate-900">{operatingHours}</span>
+          <span className="text-[11px] text-emerald-700 font-semibold">Menerima Setoran Warga</span>
         </div>
       </div>
 
@@ -146,7 +249,7 @@ export default function RecyclerProfilePage() {
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>Profil Fasilitas & PIC</span>
+          <span>Profil Fasilitas & Pemilik</span>
         </button>
         <button
           type="button"
@@ -203,6 +306,13 @@ export default function RecyclerProfilePage() {
               </div>
             )}
 
+            {saveError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{saveError}</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
@@ -238,7 +348,7 @@ export default function RecyclerProfilePage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Nama Penanggung Jawab (PIC Gudang) <span className="text-rose-500">*</span>
+                  Nama Pemilik / Penanggung Jawab <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -557,7 +667,14 @@ export default function RecyclerProfilePage() {
             {passwordSuccess && (
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2 animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Kata sandi dan PIN operasional berhasil disimpan.</span>
+                <span>Kata sandi operasional berhasil diperbarui.</span>
+              </div>
+            )}
+
+            {passwordError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{passwordError}</span>
               </div>
             )}
 

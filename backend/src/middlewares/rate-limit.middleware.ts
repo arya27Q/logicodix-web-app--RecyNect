@@ -1,12 +1,39 @@
 import type { NextFunction, Request, Response } from 'express';
+import { ENV } from '../config/env.js';
 
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
+const isDev = ENV.NODE_ENV !== 'production';
+const WINDOW_MS = isDev ? 30 * 1000 : 15 * 60 * 1000;
+const MAX_ATTEMPTS = isDev ? 100 : 10;
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
+export function clearRateLimit(ip?: string) {
+  if (!ip) {
+    attempts.clear();
+    return;
+  }
+  for (const key of attempts.keys()) {
+    if (key.startsWith(ip)) attempts.delete(key);
+  }
+}
+
 export function authRateLimit(req: Request, res: Response, next: NextFunction) {
+  // Jangan batasi rate limit di localhost saat development agar tidak mengganggu pengujian
+  const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+  if (
+    isDev &&
+    (clientIp === '127.0.0.1' ||
+      clientIp === '::1' ||
+      clientIp === '::ffff:127.0.0.1' ||
+      clientIp.includes('127.0.0.1') ||
+      clientIp === 'unknown' ||
+      req.hostname === 'localhost' ||
+      req.hostname === '127.0.0.1')
+  ) {
+    return next();
+  }
+
   const now = Date.now();
-  const key = `${req.ip ?? 'unknown'}:${req.baseUrl}${req.path}`;
+  const key = `${clientIp}:${req.baseUrl}${req.path}`;
   const current = attempts.get(key);
 
   if (!current || current.resetAt <= now) {
@@ -16,7 +43,7 @@ export function authRateLimit(req: Request, res: Response, next: NextFunction) {
       }
       if (attempts.size >= 10000) {
         res.setHeader('Retry-After', Math.ceil(WINDOW_MS / 1000));
-        return res.status(429).json({ status: 'error', message: 'Terlalu banyak percobaan. Coba lagi nanti.' });
+        return res.status(429).json({ status: 'error', message: 'Terlalu banyak percobaan. Coba lagi dalam beberapa saat.' });
       }
     }
     attempts.set(key, { count: 1, resetAt: now + WINDOW_MS });
@@ -24,8 +51,12 @@ export function authRateLimit(req: Request, res: Response, next: NextFunction) {
   }
 
   if (current.count >= MAX_ATTEMPTS) {
-    res.setHeader('Retry-After', Math.ceil((current.resetAt - now) / 1000));
-    return res.status(429).json({ status: 'error', message: 'Terlalu banyak percobaan. Coba lagi nanti.' });
+    const remainingSecs = Math.ceil((current.resetAt - now) / 1000);
+    res.setHeader('Retry-After', remainingSecs);
+    return res.status(429).json({
+      status: 'error',
+      message: `Terlalu banyak percobaan masuk. Silakan tunggu ${remainingSecs} detik sebelum mencoba kembali.`,
+    });
   }
 
   current.count += 1;
@@ -38,3 +69,4 @@ setInterval(() => {
     if (value.resetAt <= now) attempts.delete(key);
   }
 }, WINDOW_MS).unref();
+

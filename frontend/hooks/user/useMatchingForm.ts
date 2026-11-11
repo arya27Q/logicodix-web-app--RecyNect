@@ -16,15 +16,66 @@ export const FALLBACK_CATEGORIES: WasteCategory[] = [
   { id: 'cat-besi', name: 'Besi Tua / Logam Campur', unit: 'kg', isActive: true },
 ];
 
+// Helper untuk mendeteksi pre-selected category dari query param URL (misal: ?category=cat-pet)
+function getInitialCategoryFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('category');
+  } catch {
+    return null;
+  }
+}
+
+// Helper untuk mengambil draft pencocokan tersimpan secara synchronous saat inisialisasi state
+function getInitialDraft(): { items?: MatchingItemInput[]; priority?: MatchingPriority; radiusKm?: number } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem('recynect_pending_match');
+    if (!raw) return null;
+    sessionStorage.removeItem('recynect_pending_match');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export function useMatchingForm() {
   const router = useRouter();
 
+  // Ambil draft tersimpan sekali saat komponen dimuat tanpa memicu cascading render
+  const [initialDraft] = useState(getInitialDraft);
+
   // State Categories & Items
   const [categories, setCategories] = useState<WasteCategory[]>(FALLBACK_CATEGORIES);
-  const [items, setItems] = useState<MatchingItemInput[]>([
-    { categoryId: 'cat-kardus', quantity: 10, unit: 'kg', condition: 'Kering dan diikat' },
-    { categoryId: 'cat-pet', quantity: 5, unit: 'kg', condition: 'Bersih tanpa tutup botol' },
-  ]);
+  const [items, setItems] = useState<MatchingItemInput[]>(() => {
+    // 1. Cek parameter URL ?category=cat-xxx (misal dari /categories atau /recyclers/[id])
+    const urlCatId = getInitialCategoryFromUrl();
+    if (urlCatId) {
+      const found = FALLBACK_CATEGORIES.find((c) => c.id === urlCatId);
+      if (found) {
+        return [
+          {
+            categoryId: found.id,
+            quantity: found.unit === 'liter' ? 5 : 10,
+            unit: found.unit,
+            condition: 'Terpilah bersih dan siap setor',
+          },
+        ];
+      }
+    }
+
+    // 2. Cek draft tersimpan di sessionStorage
+    if (initialDraft?.items && Array.isArray(initialDraft.items) && initialDraft.items.length > 0) {
+      return initialDraft.items;
+    }
+
+    // 3. Preset awal default
+    return [
+      { categoryId: 'cat-kardus', quantity: 10, unit: 'kg', condition: 'Kering dan diikat' },
+      { categoryId: 'cat-pet', quantity: 5, unit: 'kg', condition: 'Bersih tanpa tutup botol' },
+    ];
+  });
 
   // Geolocation Composable
   const geo = useGeolocation(
@@ -34,9 +85,10 @@ export function useMatchingForm() {
   );
 
   // Matching options
-  const [priority, setPriority] = useState<MatchingPriority>('balanced');
-  const [radiusKm, setRadiusKm] = useState<number>(30);
+  const [priority, setPriority] = useState<MatchingPriority>(() => initialDraft?.priority || 'balanced');
+  const [radiusKm, setRadiusKm] = useState<number>(() => initialDraft?.radiusKm || 30);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
   // Load real categories from backend on mount
   useEffect(() => {
@@ -46,7 +98,7 @@ export function useMatchingForm() {
         if (data && data.length > 0) {
           setCategories(data);
         }
-      } catch (err) {
+      } catch {
         // Fallback default categories tetap digunakan
       }
     }
@@ -108,6 +160,37 @@ export function useMatchingForm() {
 
     setIsSubmitting(true);
 
+    // Verifikasi apakah pengguna sudah login sebagai Warga
+    let isAuthenticated = false;
+    try {
+      const session = await apiClient<{ id: string; role: string }>('/auth/me');
+      if (session && session.role === 'user') {
+        isAuthenticated = true;
+      }
+    } catch {
+      isAuthenticated = false;
+    }
+
+    if (!isAuthenticated) {
+      setIsSubmitting(false);
+      // Simpan draft inputan sampah pengguna ke sessionStorage
+      try {
+        sessionStorage.setItem(
+          'recynect_pending_match',
+          JSON.stringify({
+            items,
+            priority,
+            radiusKm,
+          })
+        );
+      } catch {
+        // Abaikan jika storage penuh
+      }
+
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     try {
       const result = await apiClient<{ sessionId: string }>('/matching', {
         method: 'POST',
@@ -121,7 +204,7 @@ export function useMatchingForm() {
       });
 
       router.push(`/match/results/${result.sessionId}`);
-    } catch (err) {
+    } catch {
       const demoSessionId = 'demo-session-' + Date.now().toString().slice(-6);
       router.push(`/match/results/${demoSessionId}?priority=${priority}&radius=${radiusKm}`);
     } finally {
@@ -143,6 +226,8 @@ export function useMatchingForm() {
     radiusKm,
     setRadiusKm,
     isSubmitting,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
     geo,
     totalWeight,
     formattedWeight,

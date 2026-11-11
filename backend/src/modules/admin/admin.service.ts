@@ -9,11 +9,13 @@ export class AdminService {
   private readonly adminRepository = new AdminRepository();
 
   public async login(payload: LoginInput) {
-    const admin = await this.adminRepository.findByEmail(payload.email);
+    const cleanEmail = payload.email.trim().toLowerCase();
+    const admin = await this.adminRepository.findByEmail(cleanEmail);
     if (!admin) {
-      const user = await this.adminRepository.findUserByEmail(payload.email);
+      const user = await this.adminRepository.findUserByEmail(cleanEmail);
       if (user) {
-        throw new HttpError(403, 'Email ini terdaftar sebagai akun ' + (user.role === 'recycler' ? 'Mitra Pengelola' : 'Warga') + ', bukan akun Administrator.');
+        const portalName = user.role === 'recycler' ? 'Mitra Pengelola di /pengelola/login' : 'Warga di /login';
+        throw new HttpError(403, `Email ini terdaftar sebagai akun ${portalName}, bukan akun Administrator.`);
       }
       throw new HttpError(404, 'Akun administrator ini belum terdaftar.');
     }

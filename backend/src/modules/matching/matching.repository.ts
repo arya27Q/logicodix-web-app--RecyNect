@@ -18,6 +18,7 @@ export class MatchingRepository {
 
     const sessionPayload = {
       id: sessionId,
+      sessionId,
       userId: userId || null,
       latitude: request.latitude,
       longitude: request.longitude,
@@ -32,6 +33,42 @@ export class MatchingRepository {
 
     // 2. Usahakan persistensi ke MySQL via Prisma jika database terkoneksi
     try {
+      // Pastikan setiap kategori ada di database sebelum dihubungkan foreign key
+      const resolvedItems: { categoryId: string; quantity: number; unit: string; condition: string | null }[] = [];
+      for (const item of request.items) {
+        let cat = await db.wasteCategory.findFirst({
+          where: {
+            OR: [
+              { id: item.categoryId },
+              { slug: item.categoryId },
+            ],
+          },
+        }).catch(() => null);
+
+        if (!cat) {
+          // Buat record kategori jika belum ada di DB agar relasi foreign key aman
+          const cleanName = item.categoryId.replace(/^cat-/, '').replace(/-/g, ' ');
+          cat = await db.wasteCategory.create({
+            data: {
+              id: item.categoryId,
+              name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+              slug: item.categoryId,
+              unit: item.unit || 'kg',
+              isActive: true,
+            },
+          }).catch(() => null);
+        }
+
+        if (cat) {
+          resolvedItems.push({
+            categoryId: cat.id,
+            quantity: item.quantity,
+            unit: item.unit || cat.unit,
+            condition: item.condition || null,
+          });
+        }
+      }
+
       await db.matchingSession.create({
         data: {
           id: sessionId,
@@ -42,12 +79,7 @@ export class MatchingRepository {
           searchRadius: request.searchRadiusKm || 30,
           status: 'completed',
           items: {
-            create: request.items.map((item) => ({
-              categoryId: item.categoryId,
-              quantity: item.quantity,
-              unit: item.unit,
-              condition: item.condition || null,
-            })),
+            create: resolvedItems,
           },
           results: {
             create: alternatives.slice(0, 5).map((alt) => ({
@@ -67,7 +99,7 @@ export class MatchingRepository {
           },
         },
       });
-    } catch (err) {
+    } catch {
       // Abaikan jika DB belum terkoneksi di lokal, data tetap aman di in-memory store
     }
 

@@ -1,7 +1,15 @@
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Muat .env dari working directory saat ini dan fallback ke folder backend/.env
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(5000),

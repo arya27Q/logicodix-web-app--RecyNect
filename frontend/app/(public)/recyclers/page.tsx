@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Phone, ShieldCheck, ArrowRight, Building2, Store, Factory, Layers } from 'lucide-react';
+import { Search, MapPin, Phone, ShieldCheck, ArrowRight } from 'lucide-react';
 import { ManagementType } from '@/types';
 
 interface RecyclerPreview {
@@ -28,7 +28,7 @@ const DEMO_RECYCLERS: RecyclerPreview[] = [
     address: 'Jl. Merdeka No. 12, Kel. Sukajaya, Bandung',
     contact: '081298765432',
     distanceKm: 1.8,
-    materialsCount: 6,
+    materialsCount: 4,
     sampleMaterials: ['Kardus', 'Botol PET', 'Minyak Jelantah', 'Kertas HVS'],
     isVerified: true,
     hours: 'Senin - Sabtu (08:00 - 15:00)',
@@ -41,8 +41,8 @@ const DEMO_RECYCLERS: RecyclerPreview[] = [
     address: 'Jl. Raya Kopo No. 88, Bandung',
     contact: '085712348899',
     distanceKm: 2.1,
-    materialsCount: 8,
-    sampleMaterials: ['Botol PET', 'Kardus', 'Aluminium', 'Besi Tua', 'Tembaga'],
+    materialsCount: 5,
+    sampleMaterials: ['Botol PET', 'Kardus', 'Aluminium', 'Kertas HVS', 'Besi Tua'],
     isVerified: true,
     hours: 'Setiap Hari (07:30 - 17:00)',
   },
@@ -54,8 +54,8 @@ const DEMO_RECYCLERS: RecyclerPreview[] = [
     address: 'Jl. Terusan Buah Batu No. 45, Bandung',
     contact: '082155443322',
     distanceKm: 3.5,
-    materialsCount: 4,
-    sampleMaterials: ['Sampah Organik', 'Kardus', 'Plastik Campur'],
+    materialsCount: 3,
+    sampleMaterials: ['Kardus', 'Kertas HVS', 'Botol PET'],
     isVerified: true,
     hours: 'Senin - Jumat (08:00 - 14:00)',
   },
@@ -67,8 +67,8 @@ const DEMO_RECYCLERS: RecyclerPreview[] = [
     address: 'Kawasan Industri Cimareme Blok C No. 5, Bandung Barat',
     contact: '022-6868990',
     distanceKm: 8.2,
-    materialsCount: 5,
-    sampleMaterials: ['Plastik PET Cacah (Min 50kg)', 'Kaleng Aluminium (Min 20kg)'],
+    materialsCount: 3,
+    sampleMaterials: ['Plastik PET Bal (Min 50kg)', 'Aluminium Bal (Min 20kg)', 'Kardus Bal (Min 100kg)'],
     isVerified: true,
     hours: 'Senin - Jumat (08:00 - 17:00)',
   },

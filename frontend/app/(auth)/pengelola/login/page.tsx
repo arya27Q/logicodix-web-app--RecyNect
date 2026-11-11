@@ -10,7 +10,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
   Building2,
   CheckCircle2,
   Warehouse,

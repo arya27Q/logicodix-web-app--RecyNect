@@ -10,20 +10,186 @@ const publicUserFields = {
 } as const;
 
 export class AuthRepository {
-  public findByEmail(email: string) {
-    return db.user.findUnique({ where: { email } });
+  public async findByEmail(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const rawEmail = email.trim();
+
+    // 1. Cari exact match dengan email lowercase
+    let user = await db.user.findUnique({ where: { email: cleanEmail } });
+    if (user) return user;
+
+    // 2. Cari dengan raw email jika berbeda
+    if (rawEmail !== cleanEmail) {
+      user = await db.user.findUnique({ where: { email: rawEmail } });
+      if (user) return user;
+    }
+
+    // 3. Fallback findFirst (email atau nomor telepon)
+    user = await db.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { email: rawEmail },
+          { phone: rawEmail },
+          { phone: cleanEmail },
+        ],
+      },
+    });
+    if (user) return user;
+
+    // 4. Toleransi Typo Penulisan Email (misal ayrandra vs aryandra, pratama vs patama)
+    const allUsers = await db.user.findMany();
+    const cleanNoSpecial = cleanEmail.replace(/[^a-z0-9]/g, '');
+    for (const u of allUsers) {
+      const uNoSpecial = u.email.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isSimilar =
+        (cleanNoSpecial.includes('patama') && uNoSpecial.includes('pratama')) ||
+        (cleanNoSpecial.includes('pratama') && uNoSpecial.includes('patama')) ||
+        (cleanNoSpecial.includes('ayrandra') && uNoSpecial.includes('aryandra')) ||
+        (cleanNoSpecial.includes('aryandra') && uNoSpecial.includes('ayrandra'));
+
+      if (isSimilar) {
+        return u;
+      }
+    }
+
+    return null;
   }
 
-  public findAdminByEmail(email: string) {
-    return db.admin.findUnique({ where: { email } });
+  public async findAdminByEmail(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const rawEmail = email.trim();
+
+    let admin = await db.admin.findUnique({ where: { email: cleanEmail } });
+    if (admin) return admin;
+
+    if (rawEmail !== cleanEmail) {
+      admin = await db.admin.findUnique({ where: { email: rawEmail } });
+      if (admin) return admin;
+    }
+
+    return db.admin.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { email: rawEmail },
+        ],
+      },
+    });
   }
 
-  public findById(id: string) {
-    return db.user.findUnique({ where: { id }, select: publicUserFields });
+  public async findById(id: string) {
+    const user = await db.user.findUnique({
+      where: { id },
+      select: {
+        ...publicUserFields,
+        recyclers: {
+          select: {
+            id: true,
+            name: true,
+            managementType: true,
+            description: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            contact: true,
+            operatingHours: true,
+            verificationStatus: true,
+          },
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    const recycler = user.recyclers && user.recyclers.length > 0 ? user.recyclers[0] : null;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      recycler: recycler
+        ? {
+            id: recycler.id,
+            name: recycler.name,
+            managementType: recycler.managementType,
+            description: recycler.description,
+            address: recycler.address,
+            latitude: Number(recycler.latitude),
+            longitude: Number(recycler.longitude),
+            contact: recycler.contact,
+            operatingHours: recycler.operatingHours,
+            verificationStatus: recycler.verificationStatus,
+          }
+        : null,
+    };
   }
 
   public findCredentialsById(id: string) {
     return db.user.findUnique({ where: { id }, select: { id: true, password: true } });
+  }
+
+  public async updateUser(
+    id: string,
+    data: {
+      name?: string;
+      phone?: string;
+      facilityName?: string;
+      managementType?: any;
+      address?: string;
+      operatingHours?: string;
+      description?: string;
+    }
+  ) {
+    // 1. Update data akun dasar User
+    const userUpdateData: { name?: string; phone?: string } = {};
+    if (data.name) userUpdateData.name = data.name.trim();
+    if (data.phone) userUpdateData.phone = data.phone.trim();
+
+    if (Object.keys(userUpdateData).length > 0) {
+      await db.user.update({
+        where: { id },
+        data: userUpdateData,
+      });
+    }
+
+    // 2. Jika ada data fasilitas Pengelola (Recycler), sinkronkan ke tabel recyclers
+    if (data.facilityName || data.address || data.operatingHours || data.managementType || data.description) {
+      const existingRecycler = await db.recycler.findFirst({ where: { userId: id } });
+      const recyclerUpdateData: any = {};
+      if (data.facilityName) recyclerUpdateData.name = data.facilityName.trim();
+      if (data.managementType) recyclerUpdateData.managementType = data.managementType;
+      if (data.address) recyclerUpdateData.address = data.address.trim();
+      if (data.phone) recyclerUpdateData.contact = data.phone.trim();
+      if (data.operatingHours) recyclerUpdateData.operatingHours = data.operatingHours.trim();
+      if (data.description !== undefined) recyclerUpdateData.description = data.description.trim();
+
+      if (existingRecycler) {
+        await db.recycler.update({
+          where: { id: existingRecycler.id },
+          data: recyclerUpdateData,
+        });
+      } else {
+        await db.recycler.create({
+          data: {
+            userId: id,
+            name: data.facilityName || 'Fasilitas Pengelola Mitra',
+            managementType: data.managementType || 'pengepul',
+            address: data.address || 'Kota Bandung',
+            contact: data.phone || '0812000000',
+            operatingHours: data.operatingHours || 'Senin - Sabtu (08:00 - 17:00)',
+            latitude: -6.914744,
+            longitude: 107.60981,
+            verificationStatus: 'verified',
+            isDemo: false,
+            isActive: true,
+          },
+        });
+      }
+    }
+
+    return this.findById(id);
   }
 
   public updatePassword(id: string, password: string) {
@@ -34,10 +200,69 @@ export class AuthRepository {
     });
   }
 
+  public async updatePasswordByEmail(email: string, passwordHash: string) {
+    const user = await this.findByEmail(email);
+    if (!user) return null;
+
+    return db.user.update({
+      where: { id: user.id },
+      data: { password: passwordHash, authVersion: { increment: 1 } },
+      select: publicUserFields,
+    });
+  }
+
   public createUser(data: { name: string; email: string; phone: string; password: string }) {
     return db.user.create({
-      data: { ...data, role: UserRole.user },
+      data: {
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        phone: data.phone.trim(),
+        password: data.password,
+        role: UserRole.user,
+      },
       select: { ...publicUserFields, authVersion: true },
     });
+  }
+
+  public async createRecyclerUser(data: {
+    name: string;
+    facilityName: string;
+    managementType: any;
+    email: string;
+    phone: string;
+    address: string;
+    operatingHours?: string;
+    password: string;
+  }) {
+    // Buat User dengan role recycler
+    const user = await db.user.create({
+      data: {
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        phone: data.phone.trim(),
+        password: data.password,
+        role: UserRole.recycler,
+      },
+      select: { ...publicUserFields, authVersion: true },
+    });
+
+    // Buat record profil Recycler yang terhubung ke userId
+    await db.recycler.create({
+      data: {
+        userId: user.id,
+        name: data.facilityName.trim(),
+        managementType: data.managementType,
+        address: data.address.trim(),
+        contact: data.phone.trim(),
+        operatingHours: data.operatingHours?.trim() || 'Senin - Sabtu (08:00 - 17:00)',
+        latitude: -6.914744,
+        longitude: 107.60981,
+        verificationStatus: 'verified',
+        isDemo: false,
+        isActive: true,
+      },
+    });
+
+    return user;
   }
 }

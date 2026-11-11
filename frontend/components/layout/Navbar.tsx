@@ -1,13 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Recycle, ArrowRight, Menu, X, User, Sparkles } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
+import {
+  Recycle,
+  ArrowRight,
+  Menu,
+  X,
+  User,
+  LogOut,
+  Building2,
+  ShieldCheck,
+} from 'lucide-react';
+
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'user' | 'recycler' | 'admin';
+}
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const navLinks = [
     { href: '/', label: 'Beranda' },
@@ -15,6 +35,54 @@ export const Navbar: React.FC = () => {
     { href: '/recyclers', label: 'Direktori Pengelola' },
     { href: '/categories', label: 'Kategori Sampah' },
   ];
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSession = async () => {
+      try {
+        const user = await apiClient<AuthUser>('/auth/me');
+        if (isMounted) setCurrentUser(user);
+      } catch {
+        if (isMounted) setCurrentUser(null);
+      }
+    };
+
+    fetchSession();
+
+    const handleAuthEvent = () => fetchSession();
+    window.addEventListener('recynect-auth-changed', handleAuthEvent);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('recynect-auth-changed', handleAuthEvent);
+    };
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await apiClient('/auth/logout', { method: 'POST' });
+    } catch {
+      // Abaikan error jaringan saat logout
+    } finally {
+      setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('recynect-auth-changed'));
+      }
+      router.replace('/login');
+      router.refresh();
+    }
+  };
+
+  const getInitials = (fullName: string) => {
+    if (!fullName) return 'U';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return fullName.slice(0, 2).toUpperCase();
+  };
+
+  const getFirstName = (fullName: string) => {
+    if (!fullName) return 'Warga';
+    return fullName.trim().split(/\s+/)[0];
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-[#faf9f6]/90 backdrop-blur-md transition-all">
@@ -36,7 +104,7 @@ export const Navbar: React.FC = () => {
           </Link>
         </div>
 
-        {/* Center Desktop Navigation (Clean with Black Pill Hover / Active) */}
+        {/* Center Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1.5 text-xs sm:text-sm">
           {navLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
@@ -56,30 +124,108 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Right CTA (Black Pill Button with User Circle & Profile) */}
+        {/* Right CTA (Dynamic User Session & Account Navigation) */}
         <div className="hidden sm:flex items-center gap-2.5">
-          <Link
-            href="/login"
-            className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-slate-700 hover:text-white hover:bg-slate-900 transition-all duration-200"
-          >
-            Masuk
-          </Link>
-          <Link
-            href="/profile"
-            title="Lihat Profil Saya"
-            className="p-2 rounded-full border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700 shadow-2xs transition"
-          >
-            <User className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/match"
-            className="group inline-flex items-center gap-2.5 rounded-full bg-slate-900 pl-4 pr-1.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-slate-800 hover:shadow transition-all active:scale-[0.98]"
-          >
-            <span>Mulai Sekarang</span>
-            <div className="w-7 h-7 rounded-full bg-white/20 group-hover:bg-emerald-500 text-white flex items-center justify-center transition-colors">
-              <User className="w-3.5 h-3.5" />
-            </div>
-          </Link>
+          {currentUser ? (
+            <>
+              {/* POV: Warga User */}
+              {currentUser.role === 'user' && (
+                <>
+                  <Link
+                    href="/profile"
+                    title={`Akun: ${currentUser.name} (${currentUser.email})`}
+                    className="inline-flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-800 text-xs font-bold transition shadow-2xs group"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px] font-black shadow-xs group-hover:scale-105 transition-transform">
+                      {getInitials(currentUser.name)}
+                    </div>
+                    <span className="truncate max-w-[120px]">{getFirstName(currentUser.name)}</span>
+                  </Link>
+
+                  <Link
+                    href="/match"
+                    className="group inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-slate-800 transition active:scale-[0.98]"
+                  >
+                    <span>Cari Rute</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Keluar dari Akun"
+                    aria-label="Keluar dari Akun"
+                    className="p-2 rounded-full border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-500 shadow-2xs transition"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* POV: Mitra Pengelola */}
+              {currentUser.role === 'recycler' && (
+                <>
+                  <Link
+                    href="/pengelola"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold hover:bg-blue-100 transition shadow-2xs"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Dashboard Mitra</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Keluar dari Akun"
+                    aria-label="Keluar dari Akun"
+                    className="p-2 rounded-full border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-500 shadow-2xs transition"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* POV: Admin Internal */}
+              {currentUser.role === 'admin' && (
+                <>
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition shadow-2xs"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Panel Admin</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Keluar dari Akun"
+                    aria-label="Keluar dari Akun"
+                    className="p-2 rounded-full border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-500 shadow-2xs transition"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Tamu / Belum Login */}
+              <Link
+                href="/login"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-slate-700 hover:text-white hover:bg-slate-900 transition-all duration-200"
+              >
+                Masuk
+              </Link>
+              <Link
+                href="/match"
+                className="group inline-flex items-center gap-2.5 rounded-full bg-slate-900 pl-4 pr-1.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-slate-800 hover:shadow transition-all active:scale-[0.98]"
+              >
+                <span>Mulai Sekarang</span>
+                <div className="w-7 h-7 rounded-full bg-white/20 group-hover:bg-emerald-500 text-white flex items-center justify-center transition-colors">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Hamburger Toggle */}
@@ -115,27 +261,89 @@ export const Navbar: React.FC = () => {
             </Link>
           ))}
           <div className="pt-3 border-t border-slate-200/80 flex flex-col gap-2">
-            <Link
-              href="/profile"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl"
-            >
-              Profil Saya
-            </Link>
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl"
-            >
-              Masuk Akun
-            </Link>
-            <Link
-              href="/match"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-3 text-xs font-bold text-white bg-slate-900 rounded-xl shadow-xs"
-            >
-              Mulai Pencocokan
-            </Link>
+            {currentUser ? (
+              <>
+                <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+                      {getInitials(currentUser.name)}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 leading-tight">{currentUser.name}</p>
+                      <p className="text-[10px] text-slate-500">{currentUser.email}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-200 uppercase">
+                    {currentUser.role}
+                  </span>
+                </div>
+
+                {currentUser.role === 'user' && (
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl"
+                  >
+                    Profil Saya
+                  </Link>
+                )}
+
+                {currentUser.role === 'recycler' && (
+                  <Link
+                    href="/pengelola"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 text-xs font-bold text-blue-900 bg-blue-50 border border-blue-200 rounded-xl"
+                  >
+                    Buka Dashboard Mitra
+                  </Link>
+                )}
+
+                {currentUser.role === 'admin' && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 text-xs font-bold text-white bg-slate-900 rounded-xl"
+                  >
+                    Buka Panel Admin
+                  </Link>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full py-2.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition"
+                >
+                  Keluar (Logout)
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl"
+                >
+                  Masuk Akun
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl"
+                >
+                  Daftar Akun Baru
+                </Link>
+                <Link
+                  href="/match"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center py-3 text-xs font-bold text-white bg-slate-900 rounded-xl shadow-xs"
+                >
+                  Mulai Pencocokan
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

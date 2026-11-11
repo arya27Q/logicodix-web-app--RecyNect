@@ -5,14 +5,36 @@ import { authRateLimit } from '../../middlewares/rate-limit.middleware.js';
 import { requireTrustedOrigin } from '../../middlewares/origin.middleware.js';
 import { validateRequest } from '../../middlewares/validate.middleware.js';
 import { AuthController } from './auth.controller.js';
-import { loginSchema, passwordChangeSchema, registerSchema } from './auth.schemas.js';
+import {
+  loginSchema,
+  passwordChangeSchema,
+  registerRecyclerSchema,
+  registerSchema,
+  resetPasswordSchema,
+  updateProfileSchema,
+} from './auth.schemas.js';
 
 const router = Router();
 const controller = new AuthController();
 
 router.post('/register', requireTrustedOrigin, authRateLimit, validateRequest(registerSchema), controller.register);
+router.post(
+  '/register-recycler',
+  requireTrustedOrigin,
+  authRateLimit,
+  validateRequest(registerRecyclerSchema),
+  controller.registerRecycler
+);
 router.post('/login', requireTrustedOrigin, authRateLimit, validateRequest(loginSchema), controller.login);
+router.post(
+  '/reset-password',
+  requireTrustedOrigin,
+  authRateLimit,
+  validateRequest(resetPasswordSchema),
+  controller.resetPassword
+);
 router.get('/me', authMiddleware, roleMiddleware('user', 'recycler', 'admin'), controller.currentSession);
+router.patch('/profile', requireTrustedOrigin, authMiddleware, roleMiddleware('user', 'recycler'), validateRequest(updateProfileSchema), controller.updateProfile);
 router.post('/logout', requireTrustedOrigin, controller.logout);
 router.patch('/password', requireTrustedOrigin, authRateLimit, authMiddleware, roleMiddleware('user', 'recycler'), validateRequest(passwordChangeSchema), controller.changePassword);
 

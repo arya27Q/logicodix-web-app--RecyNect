@@ -4,7 +4,7 @@ import { ArrowRight, Package, Wine, Droplets, Box, FileText, Wrench, Sparkles } 
 
 const CATEGORIES_DATA = [
   {
-    id: 'kardus',
+    id: 'cat-kardus',
     name: 'Kardus / Karton Cokelat',
     unit: 'kg',
     priceRange: 'Rp 1.800 - Rp 2.500 / kg',
@@ -14,7 +14,7 @@ const CATEGORIES_DATA = [
     badgeBg: 'bg-amber-50 border-amber-200',
   },
   {
-    id: 'pet',
+    id: 'cat-pet',
     name: 'Botol Plastik PET Bening',
     unit: 'kg',
     priceRange: 'Rp 3.500 - Rp 5.500 / kg',
@@ -24,7 +24,7 @@ const CATEGORIES_DATA = [
     badgeBg: 'bg-emerald-50 border-emerald-200',
   },
   {
-    id: 'minyak',
+    id: 'cat-minyak',
     name: 'Minyak Jelantah',
     unit: 'liter',
     priceRange: 'Rp 6.000 - Rp 7.500 / liter',
@@ -34,7 +34,7 @@ const CATEGORIES_DATA = [
     badgeBg: 'bg-sky-50 border-sky-200',
   },
   {
-    id: 'alum',
+    id: 'cat-alum',
     name: 'Kaleng Aluminium & Logam Ringan',
     unit: 'kg',
     priceRange: 'Rp 12.000 - Rp 17.000 / kg',
@@ -44,7 +44,7 @@ const CATEGORIES_DATA = [
     badgeBg: 'bg-purple-50 border-purple-200',
   },
   {
-    id: 'hvs',
+    id: 'cat-hvs',
     name: 'Kertas HVS / Buku Tulis',
     unit: 'kg',
     priceRange: 'Rp 2.000 - Rp 3.000 / kg',
@@ -54,7 +54,7 @@ const CATEGORIES_DATA = [
     badgeBg: 'bg-indigo-50 border-indigo-200',
   },
   {
-    id: 'besi',
+    id: 'cat-besi',
     name: 'Besi Tua & Logam Berat',
     unit: 'kg',
     priceRange: 'Rp 4.000 - Rp 6.000 / kg',
@@ -118,7 +118,7 @@ export default function CategoriesPage() {
 
             <div className="pt-5 mt-4 border-t border-slate-100">
               <Link
-                href="/match"
+                href={`/match?category=${cat.id}`}
                 className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/70 rounded-xl transition"
               >
                 <span>Cocokkan Material Ini</span>

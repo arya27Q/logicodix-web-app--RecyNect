@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { AdminService } from '../admin/admin.service.js';
 import { clearSessionCookie, setSessionCookie } from '../../security/session.js';
+import { clearRateLimit } from '../../middlewares/rate-limit.middleware.js';
 import { sendSuccess } from '../../utils/api-response.js';
 
 export class AuthController {
@@ -10,12 +11,27 @@ export class AuthController {
 
   public register = async (req: Request, res: Response) => {
     const result = await this.authService.register(req.body);
+    clearRateLimit(req.ip || req.socket.remoteAddress);
     setSessionCookie(res, result.token);
     return sendSuccess(res, result.user, 'Registrasi berhasil', 201);
   };
 
+  public registerRecycler = async (req: Request, res: Response) => {
+    const result = await this.authService.registerRecycler(req.body);
+    clearRateLimit(req.ip || req.socket.remoteAddress);
+    setSessionCookie(res, result.token);
+    return sendSuccess(res, result.user, 'Pendaftaran mitra pengelola berhasil.', 201);
+  };
+
+  public resetPassword = async (req: Request, res: Response) => {
+    const result = await this.authService.resetPassword(req.body);
+    clearRateLimit(req.ip || req.socket.remoteAddress);
+    return sendSuccess(res, result, 'Kata sandi berhasil diperbarui. Silakan masuk.');
+  };
+
   public login = async (req: Request, res: Response) => {
     const result = await this.authService.login(req.body);
+    clearRateLimit(req.ip || req.socket.remoteAddress);
     setSessionCookie(res, result.token);
     return sendSuccess(res, result.user, 'Login berhasil');
   };
@@ -40,5 +56,11 @@ export class AuthController {
     await this.authService.changePassword(req.auth.sub, req.body.currentPassword, req.body.newPassword);
     clearSessionCookie(res);
     return sendSuccess(res, null, 'Kata sandi berhasil diperbarui.');
+  };
+
+  public updateProfile = async (req: Request, res: Response) => {
+    if (!req.auth) return res.status(401).json({ status: 'error', message: 'Autentikasi diperlukan.' });
+    const updated = await this.authService.updateProfile(req.auth.sub, req.body);
+    return sendSuccess(res, updated, 'Profil berhasil diperbarui.');
   };
 }

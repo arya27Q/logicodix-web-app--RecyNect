@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { MatchingService } from './services/matching.service.js';
-import { sendSuccess } from '../../utils/api-response.js';
+import { sendError, sendSuccess } from '../../utils/api-response.js';
 
 export class MatchingController {
   private matchingService: MatchingService;
@@ -19,11 +19,9 @@ export class MatchingController {
     const sessionId = req.params.sessionId as string;
     const session = await this.matchingService.getSessionById(sessionId);
     if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: 'Sesi pencocokan tidak ditemukan',
-      });
+      return sendError(res, 'Sesi pencocokan tidak ditemukan.', 404);
     }
     return sendSuccess(res, session, 'Berhasil memuat sesi pencocokan');
   };
 }
+

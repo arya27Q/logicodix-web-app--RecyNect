@@ -14,8 +14,6 @@ import {
   CheckCircle2,
   Star,
   UserCheck,
-  Store,
-  ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
 
@@ -45,7 +43,12 @@ export default function LoginPage() {
         await apiClient('/auth/logout', { method: 'POST' });
         throw new Error('Gunakan portal sesuai jenis akun Anda.');
       }
-      router.replace('/match');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('recynect-auth-changed'));
+      }
+      const target = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('redirect')) || '/match';
+      router.replace(target);
+      router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Login gagal. Coba lagi.');
     } finally {
@@ -132,19 +135,19 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email Field */}
+            {/* Email / Phone Field */}
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-700">
-                Alamat Email <span className="text-rose-500">*</span>
+                Alamat Email atau Nomor HP <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nama@email.com"
+                  placeholder="nama@email.com atau 0896xxxx"
                   required
                   className="w-full h-11 rounded-xl border border-slate-300 bg-white pl-10 pr-3.5 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs"
                 />

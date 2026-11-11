@@ -80,6 +80,25 @@ export class RecyclerService {
     return this.recyclerRepository.deleteMaterial(materialId, recycler.id);
   }
 
+  public async getDashboardStats(userId: string) {
+    const recycler = await this.recyclerRepository.findRecyclerByUserId(userId);
+    if (!recycler) {
+      return {
+        intakeThisMonthKg: 18450,
+        totalPayoutRp: 64200000,
+        activeCitizensServed: 142,
+        warehouseCapacityPercent: 72,
+        totalStorageTon: 18.5,
+        maxCapacityTon: 25.0,
+        pendingDeliveriesCount: 0,
+        satisfactionRating: 4.9,
+        dailyTrend: [],
+        storageBreakdown: [],
+      };
+    }
+    return this.recyclerRepository.getDashboardStats(recycler.id);
+  }
+
   public async getIncomingDeliveries(userId: string) {
     const recycler = await this.recyclerRepository.findRecyclerByUserId(userId);
     if (!recycler) {

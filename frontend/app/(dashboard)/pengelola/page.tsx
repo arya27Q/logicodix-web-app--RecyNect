@@ -26,7 +26,7 @@ export default function RecyclerDashboardPage() {
     {
       label: 'Sampah Terserap Bulan Ini',
       value: `${(stats.intakeThisMonthKg / 1000).toFixed(1)} Ton`,
-      subtext: 'Dari 142 transaksi warga',
+      subtext: `Dari ${stats.activeCitizensServed} transaksi warga`,
       icon: <Scale className="w-5 h-5 text-emerald-600" />,
       bg: 'bg-emerald-50/60 border-emerald-200/80',
       href: '/pengelola/materials',
@@ -42,7 +42,7 @@ export default function RecyclerDashboardPage() {
     {
       label: 'Kapasitas Gudang',
       value: `${stats.warehouseCapacityPercent}%`,
-      subtext: '18.5 Ton dari batas 25 Ton',
+      subtext: `${stats.totalStorageTon} Ton dari batas ${stats.maxCapacityTon} Ton`,
       icon: <Warehouse className="w-5 h-5 text-indigo-600" />,
       bg: 'bg-indigo-50/60 border-indigo-200/80',
       href: '/pengelola',
@@ -114,7 +114,13 @@ export default function RecyclerDashboardPage() {
           </h2>
           <span className="text-xs text-slate-500 font-medium">Berdasarkan data timbangan resmi</span>
         </div>
-        <RecyclerAnalyticsCharts />
+        <RecyclerAnalyticsCharts
+          dailyData={stats.dailyTrend}
+          storageBreakdown={stats.storageBreakdown}
+          totalStorageTon={stats.totalStorageTon}
+          maxCapacityTon={stats.maxCapacityTon}
+          warehouseCapacityPercent={stats.warehouseCapacityPercent}
+        />
       </div>
 
       {/* Antrean Setoran Masuk Warga Hari Ini */}

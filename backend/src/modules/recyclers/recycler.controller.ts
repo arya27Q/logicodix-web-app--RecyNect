@@ -85,6 +85,15 @@ export class RecyclerController {
     return sendSuccess(res, { id: materialId }, 'Material berhasil dihapus dari ketentuan penerimaan');
   };
 
+  public getDashboardStats = async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id || req.auth?.sub;
+    if (!userId) {
+      throw new HttpError(401, 'Autentikasi diperlukan.');
+    }
+    const stats = await this.recyclerService.getDashboardStats(userId);
+    return sendSuccess(res, stats, 'Berhasil memuat ringkasan statistik operasional gudang');
+  };
+
   public getIncomingDeliveries = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {

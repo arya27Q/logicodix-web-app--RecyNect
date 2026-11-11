@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { LineChart, BarChart3, TrendingUp, ArrowUpRight, Warehouse, Scale } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { LineChart, BarChart3, TrendingUp, ArrowUpRight, Warehouse } from 'lucide-react';
 
-interface DailyPoint {
+export interface DailyPoint {
   day: string;
   volumeTon: number;
   payoutJuta: number;
@@ -11,9 +11,24 @@ interface DailyPoint {
   y: number;
 }
 
-// SVG viewBox 0 0 600 220
-// Y range: 180 (0 Ton) to 30 (5 Ton max scale) -> 150px span
-const DAILY_DATA: DailyPoint[] = [
+export interface StorageCategory {
+  name: string;
+  ton: number;
+  capacityTon: number;
+  percent: number;
+  color: string;
+}
+
+interface RecyclerAnalyticsChartsProps {
+  dailyData?: DailyPoint[];
+  storageBreakdown?: StorageCategory[];
+  totalStorageTon?: number;
+  maxCapacityTon?: number;
+  warehouseCapacityPercent?: number;
+}
+
+// Fallback jika belum selesai fetch dari database
+const DEFAULT_DAILY_DATA: DailyPoint[] = [
   { day: 'Sen', volumeTon: 2.1, payoutJuta: 7.2, x: 50, y: 117 },
   { day: 'Sel', volumeTon: 2.8, payoutJuta: 9.6, x: 133, y: 96 },
   { day: 'Rab', volumeTon: 3.4, payoutJuta: 11.8, x: 216, y: 78 },
@@ -23,21 +38,50 @@ const DAILY_DATA: DailyPoint[] = [
   { day: 'Min', volumeTon: 1.5, payoutJuta: 5.2, x: 550, y: 135 },
 ];
 
-const STORAGE_BREAKDOWN = [
+const DEFAULT_STORAGE_BREAKDOWN: StorageCategory[] = [
   { name: 'Kardus & Karton', ton: 8.2, capacityTon: 10.0, percent: 82, color: '#f59e0b' },
   { name: 'Botol Plastik PET', ton: 6.1, capacityTon: 8.0, percent: 76, color: '#10b981' },
   { name: 'Logam & Besi', ton: 2.8, capacityTon: 4.0, percent: 70, color: '#64748b' },
   { name: 'Minyak Jelantah', ton: 1.4, capacityTon: 3.0, percent: 46, color: '#6366f1' },
 ];
 
-export const RecyclerAnalyticsCharts: React.FC = () => {
+export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = ({
+  dailyData = DEFAULT_DAILY_DATA,
+  storageBreakdown = DEFAULT_STORAGE_BREAKDOWN,
+  totalStorageTon = 18.5,
+  maxCapacityTon = 25.0,
+  warehouseCapacityPercent = 74,
+}) => {
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
-  const [activeIdx, setActiveIdx] = useState<number>(DAILY_DATA.length - 2); // default Saturday peak
-  const activeDay = DAILY_DATA[activeIdx];
+  
+  const points = dailyData && dailyData.length > 0 ? dailyData : DEFAULT_DAILY_DATA;
+  const breakdown = storageBreakdown && storageBreakdown.length > 0 ? storageBreakdown : DEFAULT_STORAGE_BREAKDOWN;
 
-  const linePath =
-    'M 50,117 C 91,117 91,96 133,96 C 174,96 174,78 216,78 C 258,78 258,87 300,87 C 341,87 341,54 383,54 C 424,54 424,36 466,36 C 508,36 508,135 550,135';
-  const areaPath = `${linePath} L 550,180 L 50,180 Z`;
+  const [activeIdx, setActiveIdx] = useState<number>(() => Math.max(0, points.length - 2));
+  const safeIdx = Math.min(activeIdx, points.length - 1);
+  const activeDay = points[safeIdx] || points[0];
+
+  // Hitung kurva spline mulus dinamis berdasarkan koordinat points
+  const { linePath, areaPath } = useMemo(() => {
+    if (!points || points.length === 0) {
+      return { linePath: '', areaPath: '' };
+    }
+    let d = `M ${points[0].x},${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i];
+      const p1 = points[i + 1];
+      const midX = (p0.x + p1.x) / 2;
+      d += ` C ${midX},${p0.y} ${midX},${p1.y} ${p1.x},${p1.y}`;
+    }
+    const last = points[points.length - 1];
+    const first = points[0];
+    const area = `${d} L ${last.x},180 L ${first.x},180 Z`;
+    return { linePath: d, areaPath: area };
+  }, [points]);
+
+  // Hitung circumference lingkar keterisian gudang (r = 40)
+  const circumference = 251.32;
+  const strokeOffset = ((warehouseCapacityPercent / 100) * circumference).toFixed(2);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -180,8 +224,8 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
                   strokeLinejoin="round"
                 />
 
-                {DAILY_DATA.map((pt, idx) => {
-                  const isSelected = activeIdx === idx;
+                {points.map((pt, idx) => {
+                  const isSelected = safeIdx === idx;
                   return (
                     <g
                       key={idx}
@@ -243,10 +287,10 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
             {/* Bar View */}
             {chartType === 'bar' && (
               <g>
-                {DAILY_DATA.map((pt, idx) => {
-                  const isSelected = activeIdx === idx;
+                {points.map((pt, idx) => {
+                  const isSelected = safeIdx === idx;
                   const barWidth = 38;
-                  const barHeight = 180 - pt.y;
+                  const barHeight = Math.max(8, 180 - pt.y);
                   const barX = pt.x - barWidth / 2;
 
                   return (
@@ -282,8 +326,8 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
 
             {/* X Labels */}
             <g className="text-xs font-bold">
-              {DAILY_DATA.map((pt, idx) => {
-                const isSelected = activeIdx === idx;
+              {points.map((pt, idx) => {
+                const isSelected = safeIdx === idx;
                 return (
                   <text
                     key={idx}
@@ -328,7 +372,7 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
           <svg className="w-38 h-38 -rotate-90" viewBox="0 0 100 100">
             {/* Background Track */}
             <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
-            {/* Filled Progress 74% (251.32 * 0.74 = 185.98) */}
+            {/* Filled Progress */}
             <circle
               cx="50"
               cy="50"
@@ -336,7 +380,7 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
               fill="transparent"
               stroke="#f59e0b"
               strokeWidth="12"
-              strokeDasharray="185.98 251.32"
+              strokeDasharray={`${strokeOffset} ${circumference}`}
               strokeLinecap="round"
             />
           </svg>
@@ -346,15 +390,15 @@ export const RecyclerAnalyticsCharts: React.FC = () => {
               Keterisian
             </span>
             <span className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              74%
+              {warehouseCapacityPercent}%
             </span>
-            <span className="text-[10px] font-semibold text-slate-500">18.5 / 25 Ton</span>
+            <span className="text-[10px] font-semibold text-slate-500">{totalStorageTon} / {maxCapacityTon} Ton</span>
           </div>
         </div>
 
         {/* Progress Bars per Material */}
         <div className="space-y-3 pt-2 border-t border-slate-100 text-xs">
-          {STORAGE_BREAKDOWN.map((item, idx) => (
+          {breakdown.map((item, idx) => (
             <div key={idx} className="space-y-1">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="font-semibold text-slate-700">{item.name}</span>

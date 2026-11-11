@@ -6,6 +6,9 @@ import { roleMiddleware } from '../../middlewares/role.middleware.js';
 const router = Router();
 const controller = new RecyclerController();
 
+// Dashboard operational metrics (protected)
+router.get('/dashboard/stats', authMiddleware, roleMiddleware('recycler'), controller.getDashboardStats);
+
 // Protected Recycler Material Management (wajib sebelum :id)
 router.get('/materials/me', authMiddleware, roleMiddleware('recycler'), controller.getMyMaterials);
 router.post('/materials', authMiddleware, roleMiddleware('recycler'), controller.createMaterial);

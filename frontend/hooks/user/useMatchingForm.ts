@@ -40,42 +40,17 @@ function getInitialDraft(): { items?: MatchingItemInput[]; priority?: MatchingPr
   }
 }
 
+const DEFAULT_INITIAL_ITEMS: MatchingItemInput[] = [
+  { categoryId: 'cat-kardus', quantity: 10, unit: 'kg', condition: 'Kering dan diikat' },
+  { categoryId: 'cat-pet', quantity: 5, unit: 'kg', condition: 'Bersih tanpa tutup botol' },
+];
+
 export function useMatchingForm() {
   const router = useRouter();
 
-  // Ambil draft tersimpan sekali saat komponen dimuat tanpa memicu cascading render
-  const [initialDraft] = useState(getInitialDraft);
-
-  // State Categories & Items
+  // State Categories & Items (Deterministic initial state untuk mencegah hydration mismatch)
   const [categories, setCategories] = useState<WasteCategory[]>(FALLBACK_CATEGORIES);
-  const [items, setItems] = useState<MatchingItemInput[]>(() => {
-    // 1. Cek parameter URL ?category=cat-xxx (misal dari /categories atau /recyclers/[id])
-    const urlCatId = getInitialCategoryFromUrl();
-    if (urlCatId) {
-      const found = FALLBACK_CATEGORIES.find((c) => c.id === urlCatId);
-      if (found) {
-        return [
-          {
-            categoryId: found.id,
-            quantity: found.unit === 'liter' ? 5 : 10,
-            unit: found.unit,
-            condition: 'Terpilah bersih dan siap setor',
-          },
-        ];
-      }
-    }
-
-    // 2. Cek draft tersimpan di sessionStorage
-    if (initialDraft?.items && Array.isArray(initialDraft.items) && initialDraft.items.length > 0) {
-      return initialDraft.items;
-    }
-
-    // 3. Preset awal default
-    return [
-      { categoryId: 'cat-kardus', quantity: 10, unit: 'kg', condition: 'Kering dan diikat' },
-      { categoryId: 'cat-pet', quantity: 5, unit: 'kg', condition: 'Bersih tanpa tutup botol' },
-    ];
-  });
+  const [items, setItems] = useState<MatchingItemInput[]>(DEFAULT_INITIAL_ITEMS);
 
   // Geolocation Composable
   const geo = useGeolocation(
@@ -85,10 +60,38 @@ export function useMatchingForm() {
   );
 
   // Matching options
-  const [priority, setPriority] = useState<MatchingPriority>(() => initialDraft?.priority || 'balanced');
-  const [radiusKm, setRadiusKm] = useState<number>(() => initialDraft?.radiusKm || 30);
+  const [priority, setPriority] = useState<MatchingPriority>('balanced');
+  const [radiusKm, setRadiusKm] = useState<number>(30);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+
+  // Sinkronisasi client-side data (URL param & sessionStorage draft) setelah mount
+  useEffect(() => {
+    // 1. Cek parameter URL ?category=cat-xxx (misal dari /categories atau /recyclers/[id])
+    const urlCatId = getInitialCategoryFromUrl();
+    if (urlCatId) {
+      const found = categories.find((c) => c.id === urlCatId) || FALLBACK_CATEGORIES.find((c) => c.id === urlCatId);
+      if (found) {
+        setItems([
+          {
+            categoryId: found.id,
+            quantity: found.unit === 'liter' ? 5 : 10,
+            unit: found.unit,
+            condition: 'Terpilah bersih dan siap setor',
+          },
+        ]);
+        return;
+      }
+    }
+
+    // 2. Cek draft tersimpan di sessionStorage (misal setelah login atau kembali dari halaman hasil)
+    const draft = getInitialDraft();
+    if (draft?.items && Array.isArray(draft.items) && draft.items.length > 0) {
+      setItems(draft.items);
+      if (draft.priority) setPriority(draft.priority);
+      if (draft.radiusKm) setRadiusKm(draft.radiusKm);
+    }
+  }, [categories]);
 
   // Load real categories from backend on mount
   useEffect(() => {

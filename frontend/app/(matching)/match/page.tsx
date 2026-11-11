@@ -88,7 +88,10 @@ export default function MatchPage() {
             {/* List of Material Input Rows */}
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                <h3
+                  suppressHydrationWarning
+                  className="text-sm font-bold text-slate-900 uppercase tracking-wider"
+                >
                   Daftar Sampah yang Disetor ({items.length}/5)
                 </h3>
                 <span className="text-xs text-slate-500">Maksimal 5 jenis sekaligus</span>

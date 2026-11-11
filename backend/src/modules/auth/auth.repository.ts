@@ -265,4 +265,115 @@ export class AuthRepository {
 
     return user;
   }
+
+  public async getCitizenHistory(userId: string) {
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return {
+        history: [],
+        summary: {
+          totalWeightKg: 0,
+          totalPayoutRp: 0,
+          completedCount: 0,
+          pendingCount: 0,
+        },
+      };
+    }
+
+    const deliveries = await db.incomingDelivery.findMany({
+      where: {
+        OR: [
+          { citizenId: user.id },
+          ...(user.phone ? [{ citizenPhone: user.phone }] : []),
+          { citizenName: user.name },
+        ],
+      },
+      include: {
+        recycler: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let totalWeightKg = 0;
+    let totalPayoutRp = 0;
+    let completedCount = 0;
+    let pendingCount = 0;
+
+    const typeMap: Record<string, string> = {
+      bank_sampah: 'Bank Sampah',
+      pengepul: 'Pengepul Berizin',
+      tps3r: 'TPS3R',
+      recycler_industry: 'Pabrik Daur Ulang',
+    };
+
+    const history = deliveries.map((d) => {
+      let weight = 0;
+      if (d.actualWeight && Number(d.actualWeight) > 0) {
+        weight = Number(d.actualWeight);
+      } else if (d.totalEstimatedWeight) {
+        const parsed = parseFloat(String(d.totalEstimatedWeight).replace(/[^0-9.]/g, ''));
+        if (!isNaN(parsed) && parsed > 0) weight = parsed;
+      }
+
+      let payout = 0;
+      if (d.actualPayoutRp && Number(d.actualPayoutRp) > 0) {
+        payout = Number(d.actualPayoutRp);
+      } else if (d.estimatedPayoutRp) {
+        payout = Number(d.estimatedPayoutRp);
+      }
+
+      if (d.status === 'selesai') {
+        completedCount++;
+        totalWeightKg += weight;
+        totalPayoutRp += payout;
+      } else if (d.status === 'antre' || d.status === 'timbang') {
+        pendingCount++;
+      }
+
+      let materialsStr = '';
+      try {
+        const items = JSON.parse(d.materialsSummary || '[]');
+        if (Array.isArray(items) && items.length > 0) {
+          materialsStr = items
+            .map((i) => `${i.name || 'Material'} (${i.estimatedQty || 0} ${i.unit || 'kg'})`)
+            .join(' • ');
+        }
+      } catch {}
+      if (!materialsStr) {
+        materialsStr = d.materialsSummary || 'Material Daur Ulang';
+      }
+
+      const dateObj = new Date(d.createdAt);
+      const dateFormatted = dateObj.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+
+      return {
+        id: d.deliveryCode || d.id,
+        internalId: d.id,
+        date: dateFormatted,
+        materials: materialsStr,
+        totalWeight: `${weight.toFixed(1)} kg`,
+        amountRp: Math.round(payout),
+        status: d.status,
+        recyclerName: d.recycler?.name || 'Mitra Pengelola RecyNect',
+        recyclerType: typeMap[d.recycler?.managementType || ''] || 'Pengepul Berizin',
+        recyclerAddress: d.recycler?.address || '',
+        arrivalTime: d.arrivalTime,
+        notes: d.notes,
+      };
+    });
+
+    return {
+      history,
+      summary: {
+        totalWeightKg: Math.round(totalWeightKg * 10) / 10,
+        totalPayoutRp: Math.round(totalPayoutRp),
+        completedCount,
+        pendingCount,
+      },
+    };
+  }
 }

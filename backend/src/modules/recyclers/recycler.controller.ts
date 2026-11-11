@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { RecyclerService } from './recycler.service.js';
 import { sendSuccess } from '../../utils/api-response.js';
 import { HttpError } from '../../utils/http-error.js';
+import { db } from '../../config/database.js';
 
 export class RecyclerController {
   private recyclerService: RecyclerService;
@@ -121,7 +122,7 @@ export class RecyclerController {
   };
 
   public scheduleIncomingDelivery = async (req: Request, res: Response) => {
-    const citizenId = (req as any).user?.id || req.auth?.sub;
+    let citizenId = (req as any).user?.id || req.auth?.sub;
     const {
       recyclerId,
       sessionId,
@@ -133,6 +134,25 @@ export class RecyclerController {
       arrivalTime,
       notes,
     } = req.body;
+
+    // Hubungkan otomatis ke akun user jika nomor HP atau nama terdaftar
+    if (!citizenId && (citizenPhone || citizenName)) {
+      try {
+        const matchedUser = await db.user.findFirst({
+          where: {
+            OR: [
+              ...(citizenPhone ? [{ phone: citizenPhone }] : []),
+              ...(citizenName ? [{ name: citizenName }] : []),
+            ],
+          },
+        });
+        if (matchedUser) {
+          citizenId = matchedUser.id;
+        }
+      } catch {
+        // Abaikan jika query gagal
+      }
+    }
 
     const created = await this.recyclerService.scheduleIncomingDelivery({
       recyclerId,

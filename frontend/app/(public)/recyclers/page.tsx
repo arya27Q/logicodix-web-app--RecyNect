@@ -209,13 +209,17 @@ export default function RecyclersPage() {
               {/* Sample materials */}
               <div className="space-y-1.5 pt-2 border-t border-slate-100">
                 <span className="text-[11px] font-semibold text-slate-500">Menerima ({rec.materialsCount} Material):</span>
-                <div className="flex flex-wrap gap-1">
-                  {rec.sampleMaterials.map((m, idx) => (
-                    <span key={idx} className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                      {m}
-                    </span>
-                  ))}
-                </div>
+                {rec.sampleMaterials.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {rec.sampleMaterials.map((m, idx) => (
+                      <span key={idx} className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">Belum ada material dibuka</p>
+                )}
               </div>
             </div>
 

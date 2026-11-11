@@ -63,4 +63,10 @@ export class AuthController {
     const updated = await this.authService.updateProfile(req.auth.sub, req.body);
     return sendSuccess(res, updated, 'Profil berhasil diperbarui.');
   };
+
+  public getCitizenHistory = async (req: Request, res: Response) => {
+    if (!req.auth) return res.status(401).json({ status: 'error', message: 'Autentikasi diperlukan.' });
+    const historyData = await this.authService.getCitizenHistory(req.auth.sub);
+    return sendSuccess(res, historyData, 'Berhasil memuat riwayat penyetoran warga');
+  };
 }

@@ -9,3 +9,12 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   (req as any).user = { id: claims.sub, role: claims.role };
   return next();
 }
+
+export function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction) {
+  const claims = getSessionClaims(req);
+  if (claims) {
+    req.auth = claims;
+    (req as any).user = { id: claims.sub, role: claims.role };
+  }
+  return next();
+}

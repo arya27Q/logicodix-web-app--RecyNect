@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { RecyclerController } from './recycler.controller.js';
-import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { authMiddleware, optionalAuthMiddleware } from '../../middlewares/auth.middleware.js';
 import { roleMiddleware } from '../../middlewares/role.middleware.js';
 
 const router = Router();
@@ -18,7 +18,7 @@ router.delete('/materials/:id', authMiddleware, roleMiddleware('recycler'), cont
 // Incoming delivery endpoints
 router.get('/incoming', authMiddleware, roleMiddleware('recycler'), controller.getIncomingDeliveries);
 router.patch('/incoming/:id/status', authMiddleware, roleMiddleware('recycler'), controller.updateDeliveryStatus);
-router.post('/incoming', controller.scheduleIncomingDelivery);
+router.post('/incoming', optionalAuthMiddleware, controller.scheduleIncomingDelivery);
 
 // Public Recycler Directory
 router.get('/', controller.getAll);

@@ -154,4 +154,8 @@ export class AuthService {
     const passwordHash = await hashPassword(newPassword);
     await this.authRepository.updatePassword(id, passwordHash);
   }
+
+  public async getCitizenHistory(userId: string) {
+    return this.authRepository.getCitizenHistory(userId);
+  }
 }

@@ -30,13 +30,17 @@ import {
 
 interface HistoryItem {
   id: string;
+  internalId?: string;
   date: string;
   materials: string;
   totalWeight: string;
   recyclerName: string;
   recyclerType: string;
+  recyclerAddress?: string;
   amountRp: number;
-  status: 'selesai' | 'proses';
+  status: 'selesai' | 'antre' | 'timbang' | 'batal';
+  notes?: string;
+  arrivalTime?: string;
 }
 
 const SAMPLE_HISTORY: HistoryItem[] = [
@@ -77,6 +81,14 @@ export default function UserProfilePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'security'>('overview');
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [showSampleDemo, setShowSampleDemo] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [summary, setSummary] = useState({
+    totalWeightKg: 0,
+    totalPayoutRp: 0,
+    completedCount: 0,
+    pendingCount: 0,
+  });
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   // Profile Form States
   const [name, setName] = useState('');
@@ -124,7 +136,31 @@ export default function UserProfilePage() {
         }
       }
     };
+
+    const loadHistory = async () => {
+      try {
+        const res = await apiClient<{
+          history: HistoryItem[];
+          summary: {
+            totalWeightKg: number;
+            totalPayoutRp: number;
+            completedCount: number;
+            pendingCount: number;
+          };
+        }>('/auth/history');
+        if (isMounted && res) {
+          setHistory(res.history || []);
+          if (res.summary) setSummary(res.summary);
+        }
+      } catch {
+        // Abaikan jika history kosong
+      } finally {
+        if (isMounted) setIsLoadingHistory(false);
+      }
+    };
+
     loadProfile();
+    loadHistory();
     return () => {
       isMounted = false;
     };
@@ -354,8 +390,10 @@ export default function UserProfilePage() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                   Total Sampah Disetor
                 </span>
-                <span className="text-xl font-extrabold text-slate-900">0.0 kg</span>
-                <p className="text-[11px] text-slate-500">Akun baru terdaftar</p>
+                <span className="text-xl font-extrabold text-slate-900">{summary.totalWeightKg.toFixed(1)} kg</span>
+                <p className="text-[11px] text-slate-500">
+                  {summary.completedCount > 0 ? `${summary.completedCount} transaksi selesai ditimbang` : 'Akun baru terdaftar'}
+                </p>
               </div>
             </div>
 
@@ -367,8 +405,12 @@ export default function UserProfilePage() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                   Total Cuan Diterima
                 </span>
-                <span className="text-xl font-extrabold text-slate-900">Rp 0</span>
-                <p className="text-[11px] text-slate-500">Saldo siap diisi setoran</p>
+                <span className="text-xl font-extrabold text-slate-900">
+                  Rp {summary.totalPayoutRp.toLocaleString('id-ID')}
+                </span>
+                <p className="text-[11px] text-slate-500">
+                  {summary.totalPayoutRp > 0 ? 'Telah cair dari pengelola' : 'Saldo siap diisi setoran'}
+                </p>
               </div>
             </div>
 
@@ -381,34 +423,122 @@ export default function UserProfilePage() {
                   Status Keanggotaan
                 </span>
                 <span className="text-xl font-extrabold text-emerald-600">Warga Aktif</span>
-                <p className="text-[11px] text-slate-500">Bisa langsung setor sampah</p>
+                <p className="text-[11px] text-slate-500">
+                  {summary.pendingCount > 0 ? `${summary.pendingCount} setoran dalam antrean` : 'Bisa langsung setor sampah'}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Clean User Welcome & Action Card */}
-          <div className="card-surface rounded-3xl p-8 sm:p-10 border border-slate-200/90 text-center space-y-4 max-w-2xl mx-auto shadow-2xs">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-2xs">
-              <Sparkles className="w-7 h-7" />
+          {/* Tabel Riwayat Riil / Clean Welcome State */}
+          {history.length > 0 ? (
+            <div className="card-surface rounded-3xl overflow-hidden border border-slate-200/90 shadow-2xs">
+              <div className="p-5 sm:p-6 bg-slate-50/70 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                    <span>Daftar Riwayat Penyetoran Sampah</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Rekam jejak transaksi timbangan dan pencairan pembayaran dari mitra pengelola resmi.
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 w-fit">
+                  {history.length} Transaksi Tercatat
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-white border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="py-3.5 px-5">ID Transaksi & Tanggal</th>
+                      <th className="py-3.5 px-5">Material Daur Ulang</th>
+                      <th className="py-3.5 px-5">Mitra Pengelola Tujuan</th>
+                      <th className="py-3.5 px-5 text-right">Nilai Diterima</th>
+                      <th className="py-3.5 px-5 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {history.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/70 transition">
+                        <td className="py-4 px-5">
+                          <span className="font-mono font-bold text-slate-900 block text-xs">{item.id}</span>
+                          <span className="text-[11px] text-slate-400 font-normal">{item.date}</span>
+                          {item.arrivalTime && (
+                            <span className="text-[10px] text-slate-500 block mt-0.5">Jadwal: {item.arrivalTime}</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-5">
+                          <p className="font-bold text-slate-900">{item.materials}</p>
+                          <span className="text-[11px] text-slate-500 font-normal">
+                            Total Bobot: <span className="font-semibold text-slate-700">{item.totalWeight}</span>
+                          </span>
+                          {item.notes && (
+                            <p className="text-[10px] text-slate-500 italic mt-0.5">Catatan: {item.notes}</p>
+                          )}
+                        </td>
+                        <td className="py-4 px-5">
+                          <p className="font-bold text-slate-900">{item.recyclerName}</p>
+                          <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/60 mt-0.5">
+                            {item.recyclerType}
+                          </span>
+                          {item.recyclerAddress && (
+                            <p className="text-[10px] text-slate-400 truncate max-w-xs mt-0.5">{item.recyclerAddress}</p>
+                          )}
+                        </td>
+                        <td className="py-4 px-5 text-right font-extrabold text-emerald-700 text-sm tabular-nums whitespace-nowrap">
+                          Rp {item.amountRp.toLocaleString('id-ID')}
+                        </td>
+                        <td className="py-4 px-5 text-center">
+                          {item.status === 'selesai' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Selesai & Cair</span>
+                            </span>
+                          )}
+                          {(item.status === 'antre' || item.status === 'timbang') && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Menunggu Timbang</span>
+                            </span>
+                          )}
+                          {item.status === 'batal' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                              <span>Dibatalkan</span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-                Belum Ada Riwayat Penyetoran Sampah
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                Halo <span className="font-bold text-slate-800">{name || 'Warga'}</span>! Akun Anda siap digunakan. Mulai masukkan jenis sampah daur ulang Anda di fitur Pencocokan Rute untuk mendapatkan rekomendasi bank sampah atau pengepul dengan harga terbaik.
-              </p>
+          ) : (
+            <div className="card-surface rounded-3xl p-8 sm:p-10 border border-slate-200/90 text-center space-y-4 max-w-2xl mx-auto shadow-2xs">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-2xs">
+                <Sparkles className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
+                  Belum Ada Riwayat Penyetoran Sampah
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                  Halo <span className="font-bold text-slate-800">{name || 'Warga'}</span>! Akun Anda siap digunakan. Mulai masukkan jenis sampah daur ulang Anda di fitur Pencocokan Rute untuk mendapatkan rekomendasi bank sampah atau pengepul dengan harga terbaik.
+                </p>
+              </div>
+              <div className="pt-2 flex justify-center">
+                <Link
+                  href="/match"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs hover:shadow transition active:scale-[0.98]"
+                >
+                  <span>Mulai Pencocokan Rute Pertama Anda</span>
+                  <ArrowRight className="w-4 h-4 text-emerald-400" />
+                </Link>
+              </div>
             </div>
-            <div className="pt-2 flex justify-center">
-              <Link
-                href="/match"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs hover:shadow transition active:scale-[0.98]"
-              >
-                <span>Mulai Pencocokan Rute Pertama Anda</span>
-                <ArrowRight className="w-4 h-4 text-emerald-400" />
-              </Link>
-            </div>
-          </div>
+          )}
 
           {/* Collapsible Format Preview */}
           <div className="pt-4 border-t border-slate-200/70 text-center">
@@ -417,7 +547,7 @@ export default function UserProfilePage() {
               onClick={() => setShowSampleDemo(!showSampleDemo)}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition py-1 px-3 rounded-lg hover:bg-slate-100"
             >
-              <span>{showSampleDemo ? 'Tutup contoh format tabel transaksi' : 'Lihat contoh format pencatatan transaksi setor'}</span>
+              <span>{showSampleDemo ? 'Tutup contoh simulasi transaksi' : 'Lihat contoh format simulasi transaksi'}</span>
               {showSampleDemo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
 

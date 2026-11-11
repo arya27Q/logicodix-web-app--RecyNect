@@ -34,6 +34,7 @@ router.post(
   controller.resetPassword
 );
 router.get('/me', authMiddleware, roleMiddleware('user', 'recycler', 'admin'), controller.currentSession);
+router.get('/history', authMiddleware, roleMiddleware('user', 'recycler', 'admin'), controller.getCitizenHistory);
 router.patch('/profile', requireTrustedOrigin, authMiddleware, roleMiddleware('user', 'recycler'), validateRequest(updateProfileSchema), controller.updateProfile);
 router.post('/logout', requireTrustedOrigin, controller.logout);
 router.patch('/password', requireTrustedOrigin, authRateLimit, authMiddleware, roleMiddleware('user', 'recycler'), validateRequest(passwordChangeSchema), controller.changePassword);

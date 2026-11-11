@@ -1,4 +1,3 @@
-import { Recycler } from '../../types/index.js';
 import { RecyclerRepository } from './recycler.repository.js';
 import { HttpError } from '../../utils/http-error.js';
 
@@ -9,14 +8,17 @@ export class RecyclerService {
     this.recyclerRepository = new RecyclerRepository();
   }
 
-  public async getAll(): Promise<Recycler[]> {
-    return this.recyclerRepository.findActiveRecyclers();
+  public async getAll() {
+    return this.recyclerRepository.findAll();
   }
 
-  public async getById(id: string): Promise<Recycler | null> {
+  public async getById(id: string) {
     return this.recyclerRepository.findById(id);
   }
 
+  /**
+   * Mengambil semua material yang diterima oleh mitra pengelola yang sedang login
+   */
   public async getMyMaterials(userId: string) {
     const recycler = await this.recyclerRepository.findRecyclerByUserId(userId);
     if (!recycler) {
@@ -25,6 +27,9 @@ export class RecyclerService {
     return this.recyclerRepository.getMaterialsForRecycler(recycler.id);
   }
 
+  /**
+   * Menambahkan material baru ke daftar penerimaan mitra
+   */
   public async addMaterial(userId: string, data: {
     categoryId?: string;
     name?: string;
@@ -42,6 +47,13 @@ export class RecyclerService {
     return this.recyclerRepository.createMaterial(recycler.id, data);
   }
 
+  public async createMaterial(userId: string, data: any) {
+    return this.addMaterial(userId, data);
+  }
+
+  /**
+   * Memperbarui ketentuan material (harga, minQuantity, syarat mutu, isAvailable)
+   */
   public async updateMaterial(userId: string, materialId: string, data: {
     name?: string;
     price?: number;
@@ -57,6 +69,9 @@ export class RecyclerService {
     return this.recyclerRepository.updateMaterial(materialId, recycler.id, data);
   }
 
+  /**
+   * Menghapus material dari daftar penerimaan mitra
+   */
   public async deleteMaterial(userId: string, materialId: string) {
     const recycler = await this.recyclerRepository.findRecyclerByUserId(userId);
     if (!recycler) {
@@ -107,4 +122,3 @@ export class RecyclerService {
     return this.recyclerRepository.createIncomingDelivery(data);
   }
 }
-

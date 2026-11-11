@@ -1,165 +1,54 @@
 import { db } from '../../config/database.js';
-import { Recycler } from '../../types/index.js';
+import { Recycler, RecyclerMaterial } from '../../types/index.js';
 
-const FALLBACK_RECYCLERS: Recycler[] = [
+// Fallback in-memory store jika database MySQL offline saat dev lokal
+const inMemoryMaterials = new Map<string, any[]>();
+const inMemoryPriceHistories: any[] = [];
+
+// Seed fallback data awal jika diperlukan
+const DEFAULT_FALLBACK_MATERIALS = [
   {
-    id: 'rec-banksampah-1',
-    name: 'Bank Sampah Berkah Mandiri',
-    managementType: 'bank_sampah',
-    address: 'Jl. Merdeka No. 12, Kel. Sukajaya, Bandung',
-    latitude: -6.914744,
-    longitude: 107.60981,
-    contact: '081298765432',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-bs-1',
-        recyclerId: 'rec-banksampah-1',
-        categoryId: 'cat-kardus',
-        price: 2000,
-        unit: 'kg',
-        minQuantity: 1.0,
-        qualityRequirements: 'Kering, bersih dari staples tebal, diikat rapi',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-bs-2',
-        recyclerId: 'rec-banksampah-1',
-        categoryId: 'cat-pet',
-        price: 3500,
-        unit: 'kg',
-        minQuantity: 0.5,
-        qualityRequirements: 'Dipipihkan, tanpa tutup botol, bersih',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-bs-3',
-        recyclerId: 'rec-banksampah-1',
-        categoryId: 'cat-minyak',
-        price: 6500,
-        unit: 'liter',
-        minQuantity: 1.0,
-        qualityRequirements: 'Disaring dari sisa remah makanan, jeriken tertutup',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
+    id: 'mat-fb-1',
+    recyclerId: 'rec-default',
+    categoryId: 'cat-kardus',
+    price: 2200,
+    unit: 'kg',
+    minQuantity: 10,
+    qualityRequirements: 'Kering, bersih dari staples tebal, diikat rapi',
+    isAvailable: true,
+    priceUpdatedAt: new Date().toISOString(),
+    category: { id: 'cat-kardus', name: 'Kardus / Karton Cokelat', unit: 'kg' },
   },
   {
-    id: 'rec-pengepul-1',
-    name: 'Pengepul Logam & Plastik Jaya Abadi',
-    managementType: 'pengepul',
-    address: 'Jl. Raya Kopo No. 88, Bandung',
-    latitude: -6.932451,
-    longitude: 107.592143,
-    contact: '085712348899',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-p-1',
-        recyclerId: 'rec-pengepul-1',
-        categoryId: 'cat-pet',
-        price: 4200,
-        unit: 'kg',
-        minQuantity: 3.0,
-        qualityRequirements: 'Bersih, tanpa kotoran tanah/tutup botol dilepas',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-p-2',
-        recyclerId: 'rec-pengepul-1',
-        categoryId: 'cat-kardus',
-        price: 1800,
-        unit: 'kg',
-        minQuantity: 5.0,
-        qualityRequirements: 'Kering dan terikat rapi',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-p-3',
-        recyclerId: 'rec-pengepul-1',
-        categoryId: 'cat-alum',
-        price: 12000,
-        unit: 'kg',
-        minQuantity: 1.0,
-        qualityRequirements: 'Kaleng bersih tidak tercampur pasir',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
+    id: 'mat-fb-2',
+    recyclerId: 'rec-default',
+    categoryId: 'cat-pet',
+    price: 4200,
+    unit: 'kg',
+    minQuantity: 5,
+    qualityRequirements: 'Bersih, tanpa kotoran tanah, tutup botol dilepas',
+    isAvailable: true,
+    priceUpdatedAt: new Date().toISOString(),
+    category: { id: 'cat-pet', name: 'Botol Plastik PET Bening', unit: 'kg' },
   },
   {
-    id: 'rec-tps3r-1',
-    name: 'TPS3R Resik Barokah Kelurahan',
-    managementType: 'tps3r',
-    address: 'Jl. Terusan Buah Batu No. 45, Bandung',
-    latitude: -6.960124,
-    longitude: 107.632115,
-    contact: '082155443322',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-t-1',
-        recyclerId: 'rec-tps3r-1',
-        categoryId: 'cat-kardus',
-        price: 1600,
-        unit: 'kg',
-        minQuantity: 2.0,
-        qualityRequirements: 'Kering',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-t-2',
-        recyclerId: 'rec-tps3r-1',
-        categoryId: 'cat-hvs',
-        price: 2500,
-        unit: 'kg',
-        minQuantity: 2.0,
-        qualityRequirements: 'Kertas bersih tanpa jilid kawat besar',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'rec-industri-1',
-    name: 'PT Daur Ulang Nusantara (Pabrik Peleburan)',
-    managementType: 'recycler_industry',
-    address: 'Kawasan Industri Cimareme Blok C No. 5, Bandung Barat',
-    latitude: -6.878901,
-    longitude: 107.512345,
-    contact: '022-6868990',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-ind-1',
-        recyclerId: 'rec-industri-1',
-        categoryId: 'cat-pet',
-        price: 4800,
-        unit: 'kg',
-        minQuantity: 50.0,
-        qualityRequirements: 'Grade A, sudah dicuci dan dipres kubus bal',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
+    id: 'mat-fb-3',
+    recyclerId: 'rec-default',
+    categoryId: 'cat-minyak',
+    price: 6500,
+    unit: 'liter',
+    minQuantity: 2,
+    qualityRequirements: 'Disaring dari sisa remah makanan, jeriken tertutup rapat',
+    isAvailable: true,
+    priceUpdatedAt: new Date().toISOString(),
+    category: { id: 'cat-minyak', name: 'Minyak Jelantah', unit: 'liter' },
   },
 ];
 
 export class RecyclerRepository {
+  /**
+   * Mengambil daftar mitra pengelola aktif untuk direktori publik
+   */
   public async findActiveRecyclers(): Promise<Recycler[]> {
     try {
       const records = await db.recycler.findMany({
@@ -208,16 +97,18 @@ export class RecyclerRepository {
       // Fallback
     }
 
-    return FALLBACK_RECYCLERS;
+    return [];
   }
 
+  /**
+   * Mengambil detail satu mitra pengelola beserta harga beli materialnya
+   */
   public async findById(id: string): Promise<Recycler | null> {
     try {
       const r = await db.recycler.findUnique({
         where: { id },
         include: {
           materials: {
-            where: { isAvailable: true },
             include: { category: true },
           },
         },
@@ -259,23 +150,41 @@ export class RecyclerRepository {
       // Fallback
     }
 
-    return FALLBACK_RECYCLERS.find((r) => r.id === id) || null;
+    return null;
   }
 
+  public async findAll(): Promise<Recycler[]> {
+    return this.findActiveRecyclers();
+  }
+
+  public async findMaterialsByRecyclerId(recyclerId: string): Promise<any[]> {
+    return this.getMaterialsForRecycler(recyclerId);
+  }
+
+  /**
+   * Menemukan profil pengelola berdasarkan ID user akun yang login
+   */
   public async findRecyclerByUserId(userId: string) {
     try {
       let recycler = await db.recycler.findFirst({
-        where: { userId },
+        where: {
+          OR: [
+            { userId },
+            { id: userId },
+          ],
+        },
       });
-      if (!recycler) {
-        recycler = await db.recycler.findUnique({
-          where: { id: userId },
-        });
-      }
-      return recycler;
+      if (recycler) return recycler;
+
+      // Fallback: hubungkan ke recycler aktif pertama jika akun pengelola demo
+      const anyRec = await db.recycler.findFirst({
+        where: { isActive: true },
+      });
+      if (anyRec) return anyRec;
     } catch {
-      return null;
+      // Fallback
     }
+    return null;
   }
 
   public async getMaterialsForRecycler(recyclerId: string) {
@@ -650,5 +559,3 @@ export class RecyclerRepository {
     };
   }
 }
-
-

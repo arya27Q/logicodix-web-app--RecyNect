@@ -8,7 +8,7 @@ import { RecyclerStatsCard } from '@/components/recycler/RecyclerStatsCard';
 import { RecyclerMaterialModal } from '@/components/recycler/RecyclerMaterialModal';
 import { DeleteConfirmModal } from '@/components/recycler/DeleteConfirmModal';
 import { MaterialMarginDiagram } from '@/components/recycler/MaterialMarginDiagram';
-import { AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, X, Loader2 } from 'lucide-react';
 
 export default function RecyclerMaterialsPage() {
   const {
@@ -27,6 +27,8 @@ export default function RecyclerMaterialsPage() {
     editingMaterial,
     deletingMaterial,
     isDeleting,
+    isSaving,
+    isLoading,
     requestDelete,
     cancelDelete,
     confirmDelete,
@@ -104,6 +106,7 @@ export default function RecyclerMaterialsPage() {
         </div>
       )}
 
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -129,23 +132,35 @@ export default function RecyclerMaterialsPage() {
       {/* Visual Margin & Market Benchmark Spread Diagram */}
       <MaterialMarginDiagram materials={materials} />
 
-      <MaterialPriceTable
-        materials={materials}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onToggleAccepting={toggleAccepting}
-        onOpenCreate={openCreate}
-        onOpenEdit={openEdit}
-        onDelete={requestDelete}
-      />
+      {/* Loading Skeleton vs Table */}
+      {isLoading ? (
+        <div className="card-surface rounded-2xl p-12 border border-slate-200/80 shadow-2xs flex flex-col items-center justify-center text-center space-y-3">
+          <div className="p-3 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+          <p className="text-sm font-bold text-slate-800">Memuat Ketentuan Material Gudang...</p>
+          <p className="text-xs text-slate-400">Menghubungkan ke database MySQL & katalog kategori sampah</p>
+        </div>
+      ) : (
+        <MaterialPriceTable
+          materials={materials}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onToggleAccepting={toggleAccepting}
+          onOpenCreate={openCreate}
+          onOpenEdit={openEdit}
+          onDelete={requestDelete}
+        />
+      )}
 
-      {/* Create / Edit Material Modal */}
+      {/* Modal Tambah / Edit Material */}
       <RecyclerMaterialModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         material={editingMaterial}
         onSave={saveMaterial}
         categories={categories}
+        isSaving={isSaving}
       />
 
       {/* Custom Confirmation Dialog for Delete (Posisi di Tengah Layar) */}

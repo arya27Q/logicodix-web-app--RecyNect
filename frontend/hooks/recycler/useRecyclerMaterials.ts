@@ -23,58 +23,7 @@ export interface WasteCategoryMaster {
   description?: string;
 }
 
-const DEFAULT_MATERIALS: RecyclerMaterial[] = [
-  {
-    id: 'mat-1',
-    name: 'Kardus / Karton Box',
-    category: 'Kertas & Karton',
-    pricePerUnit: 2200,
-    unit: 'kg',
-    minQuantity: 10,
-    qualityRequirements: 'Kering, bersih dari staples tebal, diikat rapi',
-    isAccepting: true,
-  },
-  {
-    id: 'mat-2',
-    name: 'Botol Plastik PET Bening',
-    category: 'Plastik',
-    pricePerUnit: 4200,
-    unit: 'kg',
-    minQuantity: 5,
-    qualityRequirements: 'Bersih, tanpa kotoran tanah, tutup botol dilepas',
-    isAccepting: true,
-  },
-  {
-    id: 'mat-3',
-    name: 'Minyak Jelantah Rumahan',
-    category: 'Minyak & Organik',
-    pricePerUnit: 6500,
-    unit: 'liter',
-    minQuantity: 2,
-    qualityRequirements: 'Disaring dari sisa remah makanan, jeriken tertutup rapat',
-    isAccepting: true,
-  },
-  {
-    id: 'mat-4',
-    name: 'Kaleng Aluminium Soft Drink',
-    category: 'Logam',
-    pricePerUnit: 14000,
-    unit: 'kg',
-    minQuantity: 3,
-    qualityRequirements: 'Dipipihkan, bebas dari sisa cairan manis',
-    isAccepting: false,
-  },
-  {
-    id: 'mat-5',
-    name: 'Besi Tua & Scrap Konstruksi',
-    category: 'Logam',
-    pricePerUnit: 5200,
-    unit: 'kg',
-    minQuantity: 20,
-    qualityRequirements: 'Logam padat, bebas dari semen/kotoran batu berlebih',
-    isAccepting: true,
-  },
-];
+export type WasteCategoryOption = WasteCategoryMaster;
 
 export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
   const [materials, setMaterials] = useState<RecyclerMaterial[]>(initialData);
@@ -97,6 +46,8 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
       }
     } catch {
       // Fallback
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -145,7 +96,6 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
     if (!target) return;
 
     const nextState = !target.isAccepting;
-    // Optimistic update
     setMaterials((prev) =>
       prev.map((m) => (m.id === id ? { ...m, isAccepting: nextState } : m))
     );
@@ -155,8 +105,10 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
         method: 'PATCH',
         body: JSON.stringify({ isAvailable: nextState }),
       });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('recycler-materials-changed'));
+      }
     } catch (err) {
-      // Revert if failed
       setMaterials((prev) =>
         prev.map((m) => (m.id === id ? { ...m, isAccepting: !nextState } : m))
       );
@@ -175,6 +127,9 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
         method: 'PATCH',
         body: JSON.stringify({ price: newPrice }),
       });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('recycler-materials-changed'));
+      }
     } catch (err) {
       if (prevPrice !== undefined) {
         setMaterials((prev) =>
@@ -196,6 +151,9 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
         method: 'PATCH',
         body: JSON.stringify({ minQuantity: minQty }),
       });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('recycler-materials-changed'));
+      }
     } catch (err) {
       if (prevQty !== undefined) {
         setMaterials((prev) =>
@@ -213,7 +171,6 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
 
     try {
       if (editingMaterial) {
-        // Update existing material
         const payload: Record<string, unknown> = {
           name: data.name,
           category: data.category,
@@ -246,7 +203,6 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
         );
         setSuccessMessage(`Ketentuan material "${data.name || editingMaterial.name}" berhasil diperbarui.`);
       } else {
-        // Create new material
         let targetCategoryId = data.categoryId;
         if (!targetCategoryId && categories.length > 0) {
           const matched = categories.find((c) => c.name.toLowerCase() === (data.category || '').toLowerCase());
@@ -278,7 +234,6 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
             return [res, ...prev];
           });
         } else {
-          // Fallback optimistic
           const newMat: RecyclerMaterial = {
             id: `mat-${Date.now().toString().slice(-6)}`,
             name: data.name || 'Material Baru',
@@ -358,11 +313,13 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
   const openCreate = () => {
     setEditingMaterial(null);
     setIsModalOpen(true);
+    setActionError(null);
   };
 
-  const openEdit = (mat: RecyclerMaterial) => {
-    setEditingMaterial(mat);
+  const openEdit = (material: RecyclerMaterial) => {
+    setEditingMaterial(material);
     setIsModalOpen(true);
+    setActionError(null);
   };
 
   const filteredMaterials = materials.filter(
@@ -379,10 +336,10 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
     categories,
     activeCount,
     totalCount: materials.length,
-    searchQuery,
-    setSearchQuery,
     isLoading,
     isSaving,
+    searchQuery,
+    setSearchQuery,
     actionError,
     setActionError,
     successMessage,
@@ -403,5 +360,6 @@ export function useRecyclerMaterials(initialData: RecyclerMaterial[] = []) {
     updatePrice,
     updateMinQuantity,
     refreshMaterials,
+    refetch: refreshMaterials,
   };
 }

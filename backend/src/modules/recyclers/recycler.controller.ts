@@ -22,7 +22,7 @@ export class RecyclerController {
   };
 
   public getMyMaterials = async (req: Request, res: Response) => {
-    const userId = req.auth?.sub;
+    const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {
       throw new HttpError(401, 'Autentikasi diperlukan.');
     }
@@ -31,7 +31,7 @@ export class RecyclerController {
   };
 
   public createMaterial = async (req: Request, res: Response) => {
-    const userId = req.auth?.sub;
+    const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {
       throw new HttpError(401, 'Autentikasi diperlukan.');
     }
@@ -53,11 +53,11 @@ export class RecyclerController {
       qualityRequirements,
       isAvailable,
     });
-    return sendSuccess(res, created, 'Berhasil menambahkan material baru ke katalog');
+    return sendSuccess(res, created, 'Berhasil menambahkan material baru ke katalog', 201);
   };
 
   public updateMaterial = async (req: Request, res: Response) => {
-    const userId = req.auth?.sub;
+    const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {
       throw new HttpError(401, 'Autentikasi diperlukan.');
     }
@@ -76,7 +76,7 @@ export class RecyclerController {
   };
 
   public deleteMaterial = async (req: Request, res: Response) => {
-    const userId = req.auth?.sub;
+    const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {
       throw new HttpError(401, 'Autentikasi diperlukan.');
     }
@@ -86,7 +86,7 @@ export class RecyclerController {
   };
 
   public getIncomingDeliveries = async (req: Request, res: Response) => {
-    const userId = req.auth?.sub;
+    const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {
       throw new HttpError(401, 'Autentikasi diperlukan.');
     }
@@ -95,7 +95,7 @@ export class RecyclerController {
   };
 
   public updateDeliveryStatus = async (req: Request, res: Response) => {
-    const userId = req.auth?.sub;
+    const userId = (req as any).user?.id || req.auth?.sub;
     if (!userId) {
       throw new HttpError(401, 'Autentikasi diperlukan.');
     }
@@ -112,7 +112,7 @@ export class RecyclerController {
   };
 
   public scheduleIncomingDelivery = async (req: Request, res: Response) => {
-    const citizenId = req.auth?.sub;
+    const citizenId = (req as any).user?.id || req.auth?.sub;
     const {
       recyclerId,
       sessionId,

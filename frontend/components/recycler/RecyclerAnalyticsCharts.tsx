@@ -62,6 +62,28 @@ export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = (
   const points = dailyData && dailyData.length > 0 ? dailyData : DEFAULT_DAILY_DATA;
   const breakdown = storageBreakdown && storageBreakdown.length > 0 ? storageBreakdown : DEFAULT_STORAGE_BREAKDOWN;
 
+  const totalWeeklyKg = useMemo(() => {
+    return points.reduce((acc, p) => acc + (p.volumeKg ?? (p.volumeTon * 1000)), 0);
+  }, [points]);
+
+  const maxWeeklyKg = useMemo(() => {
+    return Math.max(...points.map((p) => p.volumeKg ?? (p.volumeTon * 1000)), 0);
+  }, [points]);
+
+  const topLabel = maxWeeklyKg >= 1000
+    ? `${(maxWeeklyKg / 1000).toFixed(1)}T`
+    : maxWeeklyKg > 0
+    ? `${Math.ceil(maxWeeklyKg * 1.2)} Kg`
+    : '100 Kg';
+
+  const midLabel = maxWeeklyKg >= 1000
+    ? `${(maxWeeklyKg / 2000).toFixed(1)}T`
+    : maxWeeklyKg > 0
+    ? `${Math.ceil(maxWeeklyKg * 0.6)} Kg`
+    : '50 Kg';
+
+  const botLabel = maxWeeklyKg >= 1000 ? '0T' : '0 Kg';
+
   const [activeIdx, setActiveIdx] = useState<number>(() => {
     const today = new Date().getDay(); // 0 = Min, 1 = Sen, ..., 6 = Sab
     const map = [6, 0, 1, 2, 3, 4, 5]; // Sen=0, Sel=1, Rab=2, Kam=3, Jum=4, Sab=5, Min=6
@@ -142,10 +164,18 @@ export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = (
               </button>
             </div>
 
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              +14.2% Minggu Ini
-            </span>
+            {totalWeeklyKg > 0 ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                {totalWeeklyKg >= 1000
+                  ? `${(totalWeeklyKg / 1000).toFixed(2)} Ton Minggu Ini`
+                  : `${totalWeeklyKg.toLocaleString('id-ID')} Kg Minggu Ini`}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
+                Data Real-Time
+              </span>
+            )}
           </div>
         </div>
 
@@ -200,24 +230,28 @@ export const RecyclerAnalyticsCharts: React.FC<RecyclerAnalyticsChartsProps> = (
 
             {/* Grid & Y Labels */}
             <g className="text-slate-400 text-[10px] font-semibold">
-              {/* 5.0 Ton */}
+              {/* Top scale line */}
               <line x1="40" y1="30" x2="570" y2="30" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4,4" />
-              <text x="30" y="34" textAnchor="end" fill="#94a3b8">5.0T</text>
+              <text x="30" y="34" textAnchor="end" fill="#94a3b8">{topLabel}</text>
 
-              {/* Target Harian (3.5 Ton) Y = 75 */}
-              <line x1="40" y1="75" x2="570" y2="75" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="5,5" />
-              <rect x="440" y="64" width="130" height="18" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
-              <text x="505" y="76" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="bold">
-                Target Harian (3.5T)
-              </text>
+              {/* Target Harian (hanya jika ada volume signifikan) */}
+              {maxWeeklyKg >= 1000 && (
+                <>
+                  <line x1="40" y1="75" x2="570" y2="75" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="5,5" />
+                  <rect x="440" y="64" width="130" height="18" rx="4" fill="#f8fafc" stroke="#e2e8f0" />
+                  <text x="505" y="76" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="bold">
+                    Target Harian (3.5T)
+                  </text>
+                </>
+              )}
 
-              {/* 2.5 Ton (Y = 105) */}
+              {/* Mid scale line */}
               <line x1="40" y1="105" x2="570" y2="105" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4,4" />
-              <text x="30" y="109" textAnchor="end" fill="#94a3b8">2.5T</text>
+              <text x="30" y="109" textAnchor="end" fill="#94a3b8">{midLabel}</text>
 
-              {/* 0 Ton (Y = 180) */}
+              {/* Zero line */}
               <line x1="40" y1="180" x2="570" y2="180" stroke="#e2e8f0" strokeWidth="1.5" />
-              <text x="30" y="184" textAnchor="end" fill="#94a3b8">0T</text>
+              <text x="30" y="184" textAnchor="end" fill="#94a3b8">{botLabel}</text>
             </g>
 
             {/* Line View */}

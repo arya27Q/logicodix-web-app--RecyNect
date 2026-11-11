@@ -6,5 +6,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   if (!claims) return res.status(401).json({ status: 'error', message: 'Autentikasi diperlukan.' });
 
   req.auth = claims;
+  (req as any).user = { id: claims.sub, role: claims.role };
   return next();
 }

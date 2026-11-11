@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
@@ -12,7 +12,6 @@ import {
   LogOut,
   ExternalLink,
   Building2,
-  Recycle,
 } from 'lucide-react';
 
 interface RecyclerSidebarProps {
@@ -30,6 +29,53 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
   const router = useRouter();
   const [logoutError, setLogoutError] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profile, setProfile] = useState<{
+    facilityName: string;
+    typeLabel: string;
+    initials: string;
+  }>({
+    facilityName: 'Fasilitas Mitra',
+    typeLabel: 'Mitra Pengelola',
+    initials: 'MP',
+  });
+
+  // Ambil data profil mitra yang sedang aktif dari session /auth/me
+  useEffect(() => {
+    let isMounted = true;
+    apiClient<any>('/auth/me')
+      .then((user) => {
+        if (!isMounted || !user) return;
+        const facName = user.recycler?.name || user.name || 'Fasilitas Mitra';
+        const typeMap: Record<string, string> = {
+          bank_sampah: 'Bank Sampah RW',
+          pengepul: 'Pengepul Berizin',
+          tps3r: 'Fasilitas TPS3R',
+          recycler_industry: 'Industri Daur Ulang',
+        };
+        const typeLabel = user.recycler?.managementType
+          ? typeMap[user.recycler.managementType] || 'Pengelola Sampah'
+          : 'Mitra Pengelola';
+
+        // Hitung inisial nama fasilitas (maksimal 2 karakter)
+        const cleanWords = facName.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/).filter(Boolean);
+        const initials = cleanWords.length >= 2
+          ? `${cleanWords[0][0]}${cleanWords[1][0]}`.toUpperCase()
+          : (facName.slice(0, 2).toUpperCase() || 'MP');
+
+        setProfile({
+          facilityName: facName,
+          typeLabel,
+          initials,
+        });
+      })
+      .catch(() => {
+        // Pertahankan fallback default jika sesi offline
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleLogout = async () => {
     setLogoutError('');
@@ -185,14 +231,14 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
               className="flex items-center gap-2.5 min-w-0 group hover:opacity-90 transition"
             >
               <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/30 text-amber-400 font-bold flex items-center justify-center text-xs shrink-0 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
-                HD
+                {profile.initials}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate group-hover:text-amber-400 transition-colors">
-                  PT Hijau Daur Perkasa
+                  {profile.facilityName}
                 </p>
                 <p className="text-[10px] text-amber-400 font-semibold truncate">
-                  Pabrik Daur Ulang
+                  {profile.typeLabel}
                 </p>
               </div>
             </Link>
@@ -213,4 +259,3 @@ export const RecyclerSidebar: React.FC<RecyclerSidebarProps> = ({
     </>
   );
 };
-

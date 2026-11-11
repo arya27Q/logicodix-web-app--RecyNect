@@ -2,12 +2,12 @@ import { db } from '../../config/database.js';
 import { WasteCategory } from '../../types/index.js';
 
 const FALLBACK_CATEGORIES: WasteCategory[] = [
-  { id: 'cat-kardus', name: 'Kardus / Karton Cokelat', unit: 'kg', isActive: true, description: 'Kardus cokelat tebal kemasan barang, boks paket, atau kotak mie instan.' },
-  { id: 'cat-pet', name: 'Botol Plastik PET Bening', unit: 'kg', isActive: true, description: 'Botol air mineral transparan, botol minuman soda bersih tanpa label & tutup.' },
-  { id: 'cat-minyak', name: 'Minyak Jelantah', unit: 'liter', isActive: true, description: 'Minyak goreng bekas pakai rumah tangga yang sudah disaring dari kotoran.' },
-  { id: 'cat-alum', name: 'Kaleng Aluminium / Soft Drink', unit: 'kg', isActive: true, description: 'Kaleng minuman soda, kaleng susu kental manis atau aerosol berbahan aluminium.' },
-  { id: 'cat-hvs', name: 'Kertas HVS / Buku Dokumen', unit: 'kg', isActive: true, description: 'Kertas dokumen HVS bekas, kertas lembaran putih, buku tulis tanpa sampul plastik.' },
-  { id: 'cat-besi', name: 'Besi Tua / Logam Campur', unit: 'kg', isActive: true, description: 'Besi plat bekas, rangka besi tua, paku dan potongan seng.' },
+  { id: 'cat-kardus', name: 'Kardus / Karton Cokelat', unit: 'kg', description: 'Kardus cokelat tebal kemasan barang, boks paket.', isActive: true },
+  { id: 'cat-pet', name: 'Botol Plastik PET Bening', unit: 'kg', description: 'Botol air mineral transparan tanpa tutup & label.', isActive: true },
+  { id: 'cat-minyak', name: 'Minyak Jelantah', unit: 'liter', description: 'Minyak goreng bekas pakai rumah tangga yang disaring.', isActive: true },
+  { id: 'cat-alum', name: 'Kaleng Aluminium / Soft Drink', unit: 'kg', description: 'Kaleng minuman ringan berbahan aluminium.', isActive: true },
+  { id: 'cat-hvs', name: 'Kertas HVS / Buku Dokumen', unit: 'kg', description: 'Kertas dokumen HVS bekas tanpa jilid tebal.', isActive: true },
+  { id: 'cat-besi', name: 'Besi Tua / Logam Campur', unit: 'kg', description: 'Puing besi tua dan logam campuran.', isActive: true },
 ];
 
 export class WasteRepository {
@@ -19,16 +19,16 @@ export class WasteRepository {
       });
 
       if (records && records.length > 0) {
-        return records.map((c) => ({
-          id: c.id,
-          name: c.name,
-          unit: c.unit,
-          description: c.description || undefined,
-          isActive: c.isActive,
+        return records.map((r) => ({
+          id: r.id,
+          name: r.name,
+          unit: r.unit,
+          description: r.description || undefined,
+          isActive: r.isActive,
         }));
       }
     } catch {
-      // Fallback data simulasi agar frontend tetap berfungsi
+      // Fallback data jika koneksi DB belum siap
     }
 
     return FALLBACK_CATEGORIES;
@@ -47,11 +47,9 @@ export class WasteRepository {
         };
       }
     } catch {
-      // Fallback check
+      // Fallback
     }
 
     return FALLBACK_CATEGORIES.find((c) => c.id === id) || null;
   }
 }
-
-

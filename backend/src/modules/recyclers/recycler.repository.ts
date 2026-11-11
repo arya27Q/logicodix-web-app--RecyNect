@@ -1,165 +1,54 @@
 import { db } from '../../config/database.js';
-import { Recycler } from '../../types/index.js';
+import { Recycler, RecyclerMaterial } from '../../types/index.js';
 
-const FALLBACK_RECYCLERS: Recycler[] = [
+// Fallback in-memory store jika database MySQL offline saat dev lokal
+const inMemoryMaterials = new Map<string, any[]>();
+const inMemoryPriceHistories: any[] = [];
+
+// Seed fallback data awal jika diperlukan
+const DEFAULT_FALLBACK_MATERIALS = [
   {
-    id: 'rec-banksampah-1',
-    name: 'Bank Sampah Berkah Mandiri',
-    managementType: 'bank_sampah',
-    address: 'Jl. Merdeka No. 12, Kel. Sukajaya, Bandung',
-    latitude: -6.914744,
-    longitude: 107.60981,
-    contact: '081298765432',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-bs-1',
-        recyclerId: 'rec-banksampah-1',
-        categoryId: 'cat-kardus',
-        price: 2000,
-        unit: 'kg',
-        minQuantity: 1.0,
-        qualityRequirements: 'Kering, bersih dari staples tebal, diikat rapi',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-bs-2',
-        recyclerId: 'rec-banksampah-1',
-        categoryId: 'cat-pet',
-        price: 3500,
-        unit: 'kg',
-        minQuantity: 0.5,
-        qualityRequirements: 'Dipipihkan, tanpa tutup botol, bersih',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-bs-3',
-        recyclerId: 'rec-banksampah-1',
-        categoryId: 'cat-minyak',
-        price: 6500,
-        unit: 'liter',
-        minQuantity: 1.0,
-        qualityRequirements: 'Disaring dari sisa remah makanan, jeriken tertutup',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
+    id: 'mat-fb-1',
+    recyclerId: 'rec-default',
+    categoryId: 'cat-kardus',
+    price: 2200,
+    unit: 'kg',
+    minQuantity: 10,
+    qualityRequirements: 'Kering, bersih dari staples tebal, diikat rapi',
+    isAvailable: true,
+    priceUpdatedAt: new Date().toISOString(),
+    category: { id: 'cat-kardus', name: 'Kardus / Karton Cokelat', unit: 'kg' },
   },
   {
-    id: 'rec-pengepul-1',
-    name: 'Pengepul Logam & Plastik Jaya Abadi',
-    managementType: 'pengepul',
-    address: 'Jl. Raya Kopo No. 88, Bandung',
-    latitude: -6.932451,
-    longitude: 107.592143,
-    contact: '085712348899',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-p-1',
-        recyclerId: 'rec-pengepul-1',
-        categoryId: 'cat-pet',
-        price: 4200,
-        unit: 'kg',
-        minQuantity: 3.0,
-        qualityRequirements: 'Bersih, tanpa kotoran tanah/tutup botol dilepas',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-p-2',
-        recyclerId: 'rec-pengepul-1',
-        categoryId: 'cat-kardus',
-        price: 1800,
-        unit: 'kg',
-        minQuantity: 5.0,
-        qualityRequirements: 'Kering dan terikat rapi',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-p-3',
-        recyclerId: 'rec-pengepul-1',
-        categoryId: 'cat-alum',
-        price: 12000,
-        unit: 'kg',
-        minQuantity: 1.0,
-        qualityRequirements: 'Kaleng bersih tidak tercampur pasir',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
+    id: 'mat-fb-2',
+    recyclerId: 'rec-default',
+    categoryId: 'cat-pet',
+    price: 4200,
+    unit: 'kg',
+    minQuantity: 5,
+    qualityRequirements: 'Bersih, tanpa kotoran tanah, tutup botol dilepas',
+    isAvailable: true,
+    priceUpdatedAt: new Date().toISOString(),
+    category: { id: 'cat-pet', name: 'Botol Plastik PET Bening', unit: 'kg' },
   },
   {
-    id: 'rec-tps3r-1',
-    name: 'TPS3R Resik Barokah Kelurahan',
-    managementType: 'tps3r',
-    address: 'Jl. Terusan Buah Batu No. 45, Bandung',
-    latitude: -6.960124,
-    longitude: 107.632115,
-    contact: '082155443322',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-t-1',
-        recyclerId: 'rec-tps3r-1',
-        categoryId: 'cat-kardus',
-        price: 1600,
-        unit: 'kg',
-        minQuantity: 2.0,
-        qualityRequirements: 'Kering',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'mat-t-2',
-        recyclerId: 'rec-tps3r-1',
-        categoryId: 'cat-hvs',
-        price: 2500,
-        unit: 'kg',
-        minQuantity: 2.0,
-        qualityRequirements: 'Kertas bersih tanpa jilid kawat besar',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'rec-industri-1',
-    name: 'PT Daur Ulang Nusantara (Pabrik Peleburan)',
-    managementType: 'recycler_industry',
-    address: 'Kawasan Industri Cimareme Blok C No. 5, Bandung Barat',
-    latitude: -6.878901,
-    longitude: 107.512345,
-    contact: '022-6868990',
-    verificationStatus: 'verified',
-    isDemo: true,
-    isActive: true,
-    materials: [
-      {
-        id: 'mat-ind-1',
-        recyclerId: 'rec-industri-1',
-        categoryId: 'cat-pet',
-        price: 4800,
-        unit: 'kg',
-        minQuantity: 50.0,
-        qualityRequirements: 'Grade A, sudah dicuci dan dipres kubus bal',
-        isAvailable: true,
-        priceUpdatedAt: new Date().toISOString(),
-      },
-    ],
+    id: 'mat-fb-3',
+    recyclerId: 'rec-default',
+    categoryId: 'cat-minyak',
+    price: 6500,
+    unit: 'liter',
+    minQuantity: 2,
+    qualityRequirements: 'Disaring dari sisa remah makanan, jeriken tertutup rapat',
+    isAvailable: true,
+    priceUpdatedAt: new Date().toISOString(),
+    category: { id: 'cat-minyak', name: 'Minyak Jelantah', unit: 'liter' },
   },
 ];
 
 export class RecyclerRepository {
+  /**
+   * Mengambil daftar mitra pengelola aktif untuk direktori publik
+   */
   public async findActiveRecyclers(): Promise<Recycler[]> {
     try {
       const records = await db.recycler.findMany({
@@ -208,16 +97,18 @@ export class RecyclerRepository {
       // Fallback
     }
 
-    return FALLBACK_RECYCLERS;
+    return [];
   }
 
+  /**
+   * Mengambil detail satu mitra pengelola beserta harga beli materialnya
+   */
   public async findById(id: string): Promise<Recycler | null> {
     try {
       const r = await db.recycler.findUnique({
         where: { id },
         include: {
           materials: {
-            where: { isAvailable: true },
             include: { category: true },
           },
         },
@@ -259,8 +150,296 @@ export class RecyclerRepository {
       // Fallback
     }
 
-    return FALLBACK_RECYCLERS.find((r) => r.id === id) || null;
+    return null;
+  }
+
+  /**
+   * Menemukan profil pengelola berdasarkan ID user akun yang login
+   */
+  public async findRecyclerByUserId(userId: string): Promise<{ id: string; name: string } | null> {
+    try {
+      const rec = await db.recycler.findFirst({
+        where: {
+          OR: [
+            { userId },
+            { id: userId },
+          ],
+        },
+        select: { id: true, name: true },
+      });
+
+      if (rec) return rec;
+
+      // Jika user belum punya record recycler, cek apakah ada recycler default untuk dihubungkan
+      const anyRec = await db.recycler.findFirst({
+        where: { isActive: true },
+        select: { id: true, name: true },
+      });
+      if (anyRec) return anyRec;
+    } catch {
+      // Fallback
+    }
+
+    return { id: `rec-${userId.slice(0, 8)}`, name: 'Fasilitas Pengelola Mitra' };
+  }
+
+  /**
+   * Mengambil semua material yang diterima oleh mitra pengelola
+   */
+  public async findMaterialsByRecyclerId(recyclerId: string): Promise<any[]> {
+    try {
+      const records = await db.recyclerMaterial.findMany({
+        where: { recyclerId },
+        include: { category: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (records && records.length > 0) {
+        return records.map((m) => ({
+          id: m.id,
+          recyclerId: m.recyclerId,
+          categoryId: m.categoryId,
+          price: Number(m.price),
+          unit: m.unit,
+          minQuantity: Number(m.minQuantity),
+          qualityRequirements: m.qualityRequirements || '',
+          isAvailable: m.isAvailable,
+          priceUpdatedAt: m.priceUpdatedAt.toISOString(),
+          category: m.category ? {
+            id: m.category.id,
+            name: m.category.name,
+            unit: m.category.unit,
+          } : undefined,
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+
+    // In-memory fallback
+    if (!inMemoryMaterials.has(recyclerId)) {
+      inMemoryMaterials.set(
+        recyclerId,
+        DEFAULT_FALLBACK_MATERIALS.map((m) => ({ ...m, recyclerId }))
+      );
+    }
+    return inMemoryMaterials.get(recyclerId) || [];
+  }
+
+  /**
+   * Menambahkan material baru ke daftar penerimaan mitra
+   * Sekaligus mencatat histori harga awal di tabel price_histories
+   */
+  public async createMaterial(data: {
+    recyclerId: string;
+    categoryId: string;
+    price: number;
+    unit: string;
+    minQuantity?: number;
+    qualityRequirements?: string;
+    isAvailable?: boolean;
+  }): Promise<any> {
+    const minQty = data.minQuantity !== undefined ? data.minQuantity : 0;
+    const isAvail = data.isAvailable !== undefined ? data.isAvailable : true;
+    const qualReq = data.qualityRequirements?.trim() || null;
+
+    try {
+      // Cek apakah kategori sudah ada untuk recycler ini
+      const existing = await db.recyclerMaterial.findUnique({
+        where: {
+          recyclerId_categoryId: {
+            recyclerId: data.recyclerId,
+            categoryId: data.categoryId,
+          },
+        },
+      });
+
+      if (existing) {
+        // Jika sudah ada, update harga dan ketersediaannya
+        return this.updateMaterial(existing.id, data.recyclerId, {
+          price: data.price,
+          unit: data.unit,
+          minQuantity: minQty,
+          qualityRequirements: qualReq || undefined,
+          isAvailable: isAvail,
+        });
+      }
+
+      const newMaterial = await db.recyclerMaterial.create({
+        data: {
+          recyclerId: data.recyclerId,
+          categoryId: data.categoryId,
+          price: data.price,
+          unit: data.unit,
+          minQuantity: minQty,
+          qualityRequirements: qualReq,
+          isAvailable: isAvail,
+          priceUpdatedAt: new Date(),
+        },
+        include: { category: true },
+      });
+
+      // Catat harga awal di price_histories
+      await db.priceHistory.create({
+        data: {
+          recyclerMaterialId: newMaterial.id,
+          oldPrice: data.price,
+          newPrice: data.price,
+        },
+      });
+
+      return {
+        id: newMaterial.id,
+        recyclerId: newMaterial.recyclerId,
+        categoryId: newMaterial.categoryId,
+        price: Number(newMaterial.price),
+        unit: newMaterial.unit,
+        minQuantity: Number(newMaterial.minQuantity),
+        qualityRequirements: newMaterial.qualityRequirements || '',
+        isAvailable: newMaterial.isAvailable,
+        priceUpdatedAt: newMaterial.priceUpdatedAt.toISOString(),
+        category: newMaterial.category ? {
+          id: newMaterial.category.id,
+          name: newMaterial.category.name,
+          unit: newMaterial.category.unit,
+        } : undefined,
+      };
+    } catch {
+      // In-memory fallback
+      const store = inMemoryMaterials.get(data.recyclerId) || [];
+      const newId = `mat-${Date.now()}`;
+      const item = {
+        id: newId,
+        recyclerId: data.recyclerId,
+        categoryId: data.categoryId,
+        price: data.price,
+        unit: data.unit,
+        minQuantity: minQty,
+        qualityRequirements: qualReq || '',
+        isAvailable: isAvail,
+        priceUpdatedAt: new Date().toISOString(),
+        category: { id: data.categoryId, name: data.categoryId, unit: data.unit },
+      };
+      store.unshift(item);
+      inMemoryMaterials.set(data.recyclerId, store);
+      inMemoryPriceHistories.push({
+        id: `ph-${Date.now()}`,
+        recyclerMaterialId: newId,
+        oldPrice: data.price,
+        newPrice: data.price,
+        changedAt: new Date(),
+      });
+      return item;
+    }
+  }
+
+  /**
+   * Memperbarui ketentuan material (harga, minQuantity, syarat mutu, isAvailable)
+   * Menyimpan snapshot ke price_histories jika harga berubah
+   */
+  public async updateMaterial(
+    id: string,
+    recyclerId: string,
+    data: {
+      price?: number;
+      unit?: string;
+      minQuantity?: number;
+      qualityRequirements?: string;
+      isAvailable?: boolean;
+    }
+  ): Promise<any> {
+    try {
+      const existing = await db.recyclerMaterial.findUnique({
+        where: { id },
+      });
+
+      if (!existing) {
+        throw new Error('Material tidak ditemukan');
+      }
+
+      const updatePayload: any = {};
+      let priceChanged = false;
+
+      if (data.price !== undefined && Number(data.price) > 0) {
+        updatePayload.price = data.price;
+        if (Number(existing.price) !== Number(data.price)) {
+          priceChanged = true;
+          updatePayload.priceUpdatedAt = new Date();
+        }
+      }
+
+      if (data.unit) updatePayload.unit = data.unit;
+      if (data.minQuantity !== undefined) updatePayload.minQuantity = data.minQuantity;
+      if (data.qualityRequirements !== undefined) updatePayload.qualityRequirements = data.qualityRequirements;
+      if (data.isAvailable !== undefined) updatePayload.isAvailable = data.isAvailable;
+
+      const updated = await db.recyclerMaterial.update({
+        where: { id },
+        data: updatePayload,
+        include: { category: true },
+      });
+
+      if (priceChanged && data.price !== undefined) {
+        await db.priceHistory.create({
+          data: {
+            recyclerMaterialId: id,
+            oldPrice: existing.price,
+            newPrice: data.price,
+          },
+        });
+      }
+
+      return {
+        id: updated.id,
+        recyclerId: updated.recyclerId,
+        categoryId: updated.categoryId,
+        price: Number(updated.price),
+        unit: updated.unit,
+        minQuantity: Number(updated.minQuantity),
+        qualityRequirements: updated.qualityRequirements || '',
+        isAvailable: updated.isAvailable,
+        priceUpdatedAt: updated.priceUpdatedAt.toISOString(),
+        category: updated.category ? {
+          id: updated.category.id,
+          name: updated.category.name,
+          unit: updated.category.unit,
+        } : undefined,
+      };
+    } catch (err: any) {
+      if (err.message === 'Material tidak ditemukan') throw err;
+
+      // In-memory fallback
+      const store = inMemoryMaterials.get(recyclerId) || DEFAULT_FALLBACK_MATERIALS;
+      const index = store.findIndex((m) => m.id === id);
+      if (index === -1) throw new Error('Material tidak ditemukan');
+
+      const existing = store[index];
+      const updated = {
+        ...existing,
+        ...data,
+        priceUpdatedAt: new Date().toISOString(),
+      };
+      store[index] = updated;
+      inMemoryMaterials.set(recyclerId, store);
+      return updated;
+    }
+  }
+
+  /**
+   * Menghapus material dari daftar penerimaan mitra
+   */
+  public async deleteMaterial(id: string, recyclerId: string): Promise<boolean> {
+    try {
+      await db.recyclerMaterial.delete({
+        where: { id },
+      });
+      return true;
+    } catch {
+      // In-memory fallback
+      const store = inMemoryMaterials.get(recyclerId) || [];
+      const filtered = store.filter((m) => m.id !== id);
+      inMemoryMaterials.set(recyclerId, filtered);
+      return true;
+    }
   }
 }
-
-

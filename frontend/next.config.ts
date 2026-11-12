@@ -1,12 +1,17 @@
 import type { NextConfig } from "next";
 
+const backendUrl =
+  process.env.BACKEND_URL ||
+  "https://royalblue-echidna-840805.hostingersite.com";
+
 const nextConfig: NextConfig = {
-  /* config options here */
   experimental: {
     agentFeedback: true,
   },
+
   cacheComponents: true,
   partialPrefetching: true,
+
   turbopack: {
     rules: {
       "*.css": {
@@ -15,25 +20,26 @@ const nextConfig: NextConfig = {
       },
     },
   },
+
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     return [
       {
-        source: '/api/:path*',
-        destination: `${backendUrl.replace(/\/$/, '')}/api/:path*`,
+        source: "/api/:path*",
+        destination: `${backendUrl.replace(/\/$/, "")}/api/:path*`,
       },
     ];
   },
+
   async redirects() {
     return [
       {
-        source: '/recycler',
-        destination: '/pengelola',
+        source: "/recycler",
+        destination: "/pengelola",
         permanent: true,
       },
       {
-        source: '/recycler/:path*',
-        destination: '/pengelola/:path*',
+        source: "/recycler/:path*",
+        destination: "/pengelola/:path*",
         permanent: true,
       },
     ];

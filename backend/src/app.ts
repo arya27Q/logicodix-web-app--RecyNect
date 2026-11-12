@@ -15,7 +15,12 @@ const app: Application = express();
 app.disable('x-powered-by');
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || ENV.FRONTEND_ORIGINS.includes(origin)) {
+    if (
+      !origin ||
+      ENV.FRONTEND_ORIGINS.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost')
+    ) {
       callback(null, true);
       return;
     }

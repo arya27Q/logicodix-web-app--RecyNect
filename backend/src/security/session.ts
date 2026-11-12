@@ -88,10 +88,11 @@ export function verifySessionToken(token: string): SessionClaims | null {
 }
 
 function cookieOptions() {
+  const isProduction = ENV.NODE_ENV === 'production';
   return {
     httpOnly: true,
-    secure: ENV.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    secure: isProduction,
+    sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
     path: '/',
     ...(ENV.COOKIE_DOMAIN ? { domain: ENV.COOKIE_DOMAIN } : {}),
     maxAge: SESSION_MAX_AGE_SECONDS * 1000,

@@ -1,255 +1,417 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import {
   User,
   Mail,
-  Phone,
   ShieldCheck,
   KeyRound,
   Lock,
   Building,
   CheckCircle2,
-  Calendar,
   Activity,
   Save,
   Clock,
   Eye,
   EyeOff,
+  AlertCircle,
 } from 'lucide-react';
 
+interface AdminProfileResponse {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  adminRole?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AdminActivityRecord {
+  id: string;
+  type: 'verification' | 'category' | 'price';
+  action: string;
+  target: string;
+  timestamp: string;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  superadmin: 'Super Administrator',
+  moderator: 'Moderator Mitra',
+  auditor: 'Auditor Harga',
+  admin: 'Administrator Platform',
+};
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'AD';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
 export default function AdminProfilePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'info' | 'security' | 'activity'>('info');
 
-  // Form states
-  const [fullName, setFullName] = useState('Arya Pratama, S.Kom.');
-  const [email, setEmail] = useState('arya.pratama@recynect.id');
-  const [phone, setPhone] = useState('+62 812-3456-7890');
-  const [department, setDepartment] = useState('Super Administrator & Tata Kelola Ekosistem');
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Security states
+  const [adminId, setAdminId] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [adminRole, setAdminRole] = useState('admin');
+  const [createdAt, setCreatedAt] = useState('');
+
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Activity logs
-  const activityLogs = [
-    {
-      action: 'Menyetujui Verifikasi Kemitraan',
-      target: 'PT Hijau Daur Perkasa (Pabrik)',
-      time: 'Hari ini, 14:20 WIB',
-      icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
-    },
-    {
-      action: 'Pembaruan Batas Harga Kategori Master',
-      target: 'Botol Plastik PET Bening (Rp 3.800 - Rp 4.800)',
-      time: 'Kemarin, 09:45 WIB',
-      icon: <Activity className="w-4 h-4 text-sky-600" />,
-    },
-    {
-      action: 'Broadcast Peringatan Audit Anomali',
-      target: '3 Mitra dengan Deviasi Harga >20%',
-      time: '08 Nov 2026, 16:10 WIB',
-      icon: <ShieldCheck className="w-4 h-4 text-amber-600" />,
-    },
-    {
-      action: 'Login Sesi Console Administrator',
-      target: 'Browser Chrome pada Windows (IP 103.144.18.22)',
-      time: '08 Nov 2026, 08:00 WIB',
-      icon: <Clock className="w-4 h-4 text-slate-500" />,
-    },
-  ];
+  const [activityLogs, setActivityLogs] = useState<AdminActivityRecord[]>([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const loadData = useCallback(async () => {
+    setLoadError(null);
+    setIsLoading(true);
+    try {
+      const [profile, activity] = await Promise.all([
+        apiClient<AdminProfileResponse>('/admin/profile'),
+        apiClient<AdminActivityRecord[]>('/admin/activity').catch(() => []),
+      ]);
+
+      setAdminId(profile.id);
+      setFullName(profile.name);
+      setEmail(profile.email);
+      setAdminRole(profile.adminRole || profile.role || 'admin');
+      setCreatedAt(profile.createdAt);
+      setActivityLogs(Array.isArray(activity) ? activity : []);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Gagal memuat profil administrator.');
+    } finally {
+      setIsLoading(false);
+      setIsLoadingActivity(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      apiClient<AdminProfileResponse>('/admin/profile'),
+      apiClient<AdminActivityRecord[]>('/admin/activity').catch(() => []),
+    ])
+      .then(([profile, activity]) => {
+        if (!isMounted) return;
+        setAdminId(profile.id);
+        setFullName(profile.name);
+        setEmail(profile.email);
+        setAdminRole(profile.adminRole || profile.role || 'admin');
+        setCreatedAt(profile.createdAt);
+        setActivityLogs(Array.isArray(activity) ? activity : []);
+        setLoadError(null);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setLoadError(err instanceof Error ? err.message : 'Gagal memuat profil administrator.');
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsLoading(false);
+        setIsLoadingActivity(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
-  };
+    setSaveError(null);
+    setSaveSuccess(false);
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      alert('Konfirmasi kata sandi baru tidak cocok.');
+    if (fullName.trim().length < 2) {
+      setSaveError('Nama lengkap minimal 2 karakter.');
       return;
     }
-    setPasswordSuccess(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setPasswordSuccess(false), 3000);
+
+    setIsSavingProfile(true);
+    try {
+      const updated = await apiClient<AdminProfileResponse>('/admin/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ name: fullName.trim(), email: email.trim() }),
+      });
+      setFullName(updated.name);
+      setEmail(updated.email);
+      setSaveSuccess(true);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('admin-data-changed'));
+      }
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Gagal menyimpan profil administrator.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (newPassword.length < 8) {
+      setPasswordError('Kata sandi baru minimal 8 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Konfirmasi kata sandi baru tidak cocok.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      await apiClient('/admin/password', {
+        method: 'PATCH',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      setTimeout(() => {
+        router.replace('/admin/login');
+        router.refresh();
+      }, 1800);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Gagal memperbarui kata sandi.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const roleLabel = ROLE_LABELS[adminRole.toLowerCase()] || 'Administrator';
+
+  if (isLoading) {
+    return (
+      <div className="p-10 text-center text-xs font-semibold text-slate-600 bg-white rounded-2xl border border-slate-200">
+        Memuat profil administrator...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div
+        role="alert"
+        className="p-6 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-semibold text-rose-800"
+      >
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" aria-hidden="true" />
+          <span>{loadError}</span>
+        </div>
+        <button
+          type="button"
+          onClick={loadData}
+          className="min-h-[40px] px-4 py-2 rounded-xl bg-white border border-rose-200 font-bold"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Profil Administrator
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Pengaturan identitas staf, hak akses otoritas, kredensial keamanan, dan riwayat aktivitas.
+          <p className="text-xs sm:text-sm text-slate-600 mt-1">
+            Pengaturan identitas akun administrator, pembaruan kata sandi, dan log aktivitas sistem.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Otoritas Super Admin</span>
-          </span>
-        </div>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 w-fit">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" aria-hidden="true" />
+          <span>{roleLabel}</span>
+        </span>
       </div>
 
-      {/* Main Profile Summary Card */}
       <div className="card-surface rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-emerald-400 font-extrabold text-2xl flex items-center justify-center border-2 border-slate-700 shadow-md shrink-0">
-            AP
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-900 text-emerald-400 font-extrabold text-xl sm:text-2xl flex items-center justify-center border-2 border-slate-700 shadow-md shrink-0">
+            {getInitials(fullName)}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-extrabold text-slate-900">{fullName}</h2>
+              <h2 className="text-xl font-extrabold text-slate-900 truncate">{fullName}</h2>
               <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                ADM-EMP-8812
+                {adminId.slice(0, 8)}
               </span>
             </div>
-            <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{department}</span>
+            <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" aria-hidden="true" />
+              <span>{roleLabel}</span>
             </p>
-            <p className="text-xs text-slate-500 font-medium">
-              Bergabung sejak 15 Januari 2025 • Status: Aktif & Terverifikasi
+            <p className="text-xs text-slate-600 font-medium">
+              Terdaftar sejak {createdAt ? createdAt.split('T')[0] : '-'} | Tabel: admins
             </p>
           </div>
-        </div>
-
-        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-6 text-xs text-slate-500 gap-1 shrink-0">
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            Tingkat Akses Sistem
-          </span>
-          <span className="text-sm font-extrabold text-slate-900">Level 1 (Full Root)</span>
-          <span className="text-[11px] text-emerald-700 font-semibold">Semua Izin Aktif</span>
         </div>
       </div>
 
-      {/* Tab Nav Buttons */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+      <div
+        role="tablist"
+        aria-label="Menu pengaturan profil administrator"
+        className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3"
+      >
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'info'}
           onClick={() => setActiveTab('info')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
             activeTab === 'info'
               ? 'bg-slate-900 text-white shadow-2xs'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <User className="w-3.5 h-3.5" />
+          <User className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Informasi Identitas</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'security'}
           onClick={() => setActiveTab('security')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
             activeTab === 'security'
               ? 'bg-slate-900 text-white shadow-2xs'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <KeyRound className="w-3.5 h-3.5" />
+          <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Keamanan & Sandi</span>
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'activity'}
           onClick={() => setActiveTab('activity')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+          className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
             activeTab === 'activity'
               ? 'bg-slate-900 text-white shadow-2xs'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <Activity className="w-3.5 h-3.5" />
-          <span>Log Audit Aktivitas</span>
+          <Activity className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Log Aktivitas Sistem</span>
         </button>
       </div>
 
-      {/* ============================================================== */}
-      {/* TAB 1: INFORMASI IDENTITAS                                     */}
-      {/* ============================================================== */}
       {activeTab === 'info' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">
           <div className="card-surface rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-              Data Pribadi Staf Administrator
+              Data Akun Administrator
             </h3>
 
+            {saveError && (
+              <div
+                role="alert"
+                className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />
+                <span>{saveError}</span>
+              </div>
+            )}
+
             {saveSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Perubahan profil staf berhasil disimpan.</span>
+              <div
+                role="status"
+                className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
+                <span>Perubahan profil administrator berhasil disimpan ke database.</span>
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Nama Lengkap & Gelar
+                <label
+                  htmlFor="admin-profile-name"
+                  className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider"
+                >
+                  Nama Lengkap
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <User
+                    className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
                   <input
+                    id="admin-profile-name"
                     type="text"
+                    required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
+                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Email Resmi Dinas
+                <label
+                  htmlFor="admin-profile-email"
+                  className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider"
+                >
+                  Email Resmi Administrator
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Mail
+                    className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
                   <input
+                    id="admin-profile-email"
                     type="email"
+                    required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
+                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Nomor Handphone / WhatsApp Dinas
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="admin-profile-role"
+                  className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider"
+                >
+                  Peran Otoritas
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
+                  <Building
+                    className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Departemen / Divisi
-                </label>
-                <div className="relative">
-                  <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
+                    id="admin-profile-role"
                     type="text"
                     disabled
-                    value={department}
-                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-500 font-medium cursor-not-allowed shadow-2xs"
+                    value={roleLabel}
+                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-600 font-medium shadow-2xs"
                   />
                 </div>
               </div>
@@ -258,89 +420,128 @@ export default function AdminProfilePage() {
             <div className="pt-3 border-t border-slate-100 flex justify-end">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-2xs transition active:scale-[0.99]"
+                disabled={isSavingProfile}
+                className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-2xs transition disabled:opacity-60"
               >
-                <Save className="w-4 h-4" />
-                <span>Simpan Perubahan Profil</span>
+                <Save className="w-4 h-4" aria-hidden="true" />
+                <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Perubahan Profil'}</span>
               </button>
             </div>
           </div>
         </form>
       )}
 
-      {/* ============================================================== */}
-      {/* TAB 2: KEAMANAN & KATA SANDI                                   */}
-      {/* ============================================================== */}
       {activeTab === 'security' && (
         <div className="space-y-6">
-          {/* Change Password Card */}
-          <form onSubmit={handleUpdatePassword} className="card-surface rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
+          <form
+            onSubmit={handleUpdatePassword}
+            className="card-surface rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4"
+          >
             <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-              Pembaruan Kata Sandi Akun Dinas
+              Pembaruan Kata Sandi Administrator
             </h3>
 
+            {passwordError && (
+              <div
+                role="alert"
+                className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />
+                <span>{passwordError}</span>
+              </div>
+            )}
+
             {passwordSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Kata sandi berhasil diperbarui dengan aman.</span>
+              <div
+                role="status"
+                className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
+                <span>Kata sandi diperbarui. Mengalihkan kembali ke halaman login...</span>
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Sandi Saat Ini <span className="text-rose-500">*</span>
+                <label
+                  htmlFor="admin-current-password"
+                  className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider"
+                >
+                  Sandi Saat Ini <span className="text-rose-600">*</span>
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Lock
+                    className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
                   <input
+                    id="admin-current-password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
+                    placeholder="Kata sandi saat ini"
+                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Sandi Baru <span className="text-rose-500">*</span>
+                <label
+                  htmlFor="admin-new-password"
+                  className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider"
+                >
+                  Sandi Baru <span className="text-rose-600">*</span>
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Lock
+                    className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
                   <input
+                    id="admin-new-password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min. 8 karakter"
-                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
+                    className="w-full h-11 pl-10 pr-3.5 text-sm rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                  Ulangi Sandi Baru <span className="text-rose-500">*</span>
+                <label
+                  htmlFor="admin-confirm-password"
+                  className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider"
+                >
+                  Ulangi Sandi Baru <span className="text-rose-600">*</span>
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Lock
+                    className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    aria-hidden="true"
+                  />
                   <input
+                    id="admin-confirm-password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Ulangi sandi baru"
-                    className="w-full h-11 pl-10 pr-10 text-sm rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
+                    className="w-full h-11 pl-10 pr-11 text-sm rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition shadow-2xs font-medium text-slate-900"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-600 hover:text-slate-900 transition"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-4 h-4" aria-hidden="true" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -349,81 +550,86 @@ export default function AdminProfilePage() {
             <div className="pt-3 border-t border-slate-100 flex justify-end">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition active:scale-[0.99]"
+                disabled={isUpdatingPassword}
+                className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition disabled:opacity-60"
               >
-                <KeyRound className="w-4 h-4" />
-                <span>Perbarui Kata Sandi</span>
+                <KeyRound className="w-4 h-4" aria-hidden="true" />
+                <span>{isUpdatingPassword ? 'Memperbarui...' : 'Perbarui Kata Sandi'}</span>
               </button>
             </div>
           </form>
 
-          {/* 2FA & Session Security Card */}
-          <div className="card-surface rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900">
-                  Autentikasi Dua Faktor (2FA)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Wajib bagi akun Super Administrator untuk memvalidasi setiap login console.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
-                  twoFactorEnabled
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-slate-100 text-slate-500 border border-slate-200'
-                }`}
-              >
-                {twoFactorEnabled ? '2FA Aktif' : '2FA Nonaktif'}
-              </button>
+          <div className="card-surface rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">
+                Autentikasi Dua Faktor (2FA / MFA)
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Belum tersedia pada versi MVP. Perubahan sandi otomatis membatalkan sesi lama melalui peningkatan auth_version.
+              </p>
             </div>
+            <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 w-fit shrink-0">
+              Belum Tersedia (MVP)
+            </span>
           </div>
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* TAB 3: LOG AUDIT AKTIVITAS                                     */}
-      {/* ============================================================== */}
       {activeTab === 'activity' && (
         <div className="card-surface rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-extrabold text-slate-900">
-                Riwayat Aksi Administrator
+                Riwayat Perubahan Data Platform
               </h3>
-              <p className="text-xs text-slate-500">
-                Log audit kepatuhan internal terhadap manipulasi data mitra dan sistem.
+              <p className="text-xs text-slate-600">
+                Aktivitas terbaru pada verifikasi mitra, kategori master, dan pembaruan harga dari database.
               </p>
             </div>
-            <span className="text-xs font-bold text-slate-500 font-mono">
-              Total {activityLogs.length} Aksi Terakhir
+            <span className="text-xs font-bold text-slate-600 font-mono tabular-nums">
+              {activityLogs.length} Catatan
             </span>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {activityLogs.map((log, idx) => (
-              <div key={idx} className="py-3.5 flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 shrink-0 mt-0.5">
-                    {log.icon}
+          {isLoadingActivity ? (
+            <p className="text-xs text-slate-600 py-6 text-center font-semibold">
+              Memuat catatan aktivitas sistem...
+            </p>
+          ) : activityLogs.length === 0 ? (
+            <p className="text-xs text-slate-600 py-6 text-center">
+              Belum ada catatan perubahan data di database.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {activityLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="py-3.5 flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 shrink-0 mt-0.5">
+                      {log.type === 'verification' ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+                      ) : log.type === 'category' ? (
+                        <Activity className="w-4 h-4 text-sky-700" aria-hidden="true" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-amber-700" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">{log.action}</p>
+                      <p className="text-xs text-slate-600 mt-0.5">{log.target}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900">{log.action}</p>
-                    <p className="text-xs text-slate-600 mt-0.5">{log.target}</p>
-                  </div>
+                  <span className="text-[11px] font-mono text-slate-600 whitespace-nowrap">
+                    {new Date(log.timestamp).toLocaleString('id-ID')}
+                  </span>
                 </div>
-                <span className="text-[11px] font-mono text-slate-400 whitespace-nowrap">
-                  {log.time}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
-

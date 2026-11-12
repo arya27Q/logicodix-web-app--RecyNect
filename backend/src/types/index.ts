@@ -22,9 +22,17 @@ export interface Admin {
 export interface WasteCategory {
   id: string;
   name: string;
+  slug?: string;
   unit: string;
   description?: string;
+  icon?: string;
   isActive: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  averagePrice?: number;
+  totalRecyclers?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RecyclerMaterial {

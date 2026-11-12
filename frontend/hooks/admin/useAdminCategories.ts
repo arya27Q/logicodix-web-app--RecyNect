@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { WasteCategory } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import { apiClient } from '@/lib/api-client';
+import type { WasteCategory } from '@/types';
 
 export interface AdminCategoryItem extends WasteCategory {
-  description?: string;
   minPrice: number;
   maxPrice: number;
   averagePrice: number;
@@ -12,152 +12,209 @@ export interface AdminCategoryItem extends WasteCategory {
   updatedAt: string;
 }
 
-const INITIAL_CATEGORIES: AdminCategoryItem[] = [
-  {
-    id: 'cat-kardus',
-    name: 'Kardus / Karton Cokelat',
-    unit: 'kg',
-    isActive: true,
-    description: 'Kardus bekas packing, karton bergelombang bersih tanpa staples kawat tebal.',
-    minPrice: 1600,
-    maxPrice: 2400,
-    averagePrice: 2050,
-    totalRecyclers: 18,
-    updatedAt: '2026-11-08',
-  },
-  {
-    id: 'cat-pet',
-    name: 'Botol Plastik PET Bening',
-    unit: 'kg',
-    isActive: true,
-    description: 'Botol plastik minuman transparan/bening, bersih tanpa label & tutup botol.',
-    minPrice: 3800,
-    maxPrice: 4800,
-    averagePrice: 4300,
-    totalRecyclers: 22,
-    updatedAt: '2026-11-09',
-  },
-  {
-    id: 'cat-minyak',
-    name: 'Minyak Jelantah',
-    unit: 'liter',
-    isActive: true,
-    description: 'Minyak goreng bekas pakai, telah disaring bebas sisa makanan gosong.',
-    minPrice: 6000,
-    maxPrice: 7500,
-    averagePrice: 6700,
-    totalRecyclers: 9,
-    updatedAt: '2026-11-07',
-  },
-  {
-    id: 'cat-alum',
-    name: 'Kaleng Aluminium / Soft Drink',
-    unit: 'kg',
-    isActive: true,
-    description: 'Kaleng minuman aluminium tipis, dipipihkan agar hemat volume penyimpanan.',
-    minPrice: 12000,
-    maxPrice: 15500,
-    averagePrice: 13800,
-    totalRecyclers: 14,
-    updatedAt: '2026-11-09',
-  },
-  {
-    id: 'cat-hvs',
-    name: 'Kertas HVS / Buku Dokumen',
-    unit: 'kg',
-    isActive: true,
-    description: 'Kertas dokumen putih bersih, arsip kantor, majalah tanpa laminasi plastik.',
-    minPrice: 1800,
-    maxPrice: 2600,
-    averagePrice: 2200,
-    totalRecyclers: 16,
-    updatedAt: '2026-11-06',
-  },
-  {
-    id: 'cat-besi',
-    name: 'Besi Tua / Logam Campur',
-    unit: 'kg',
-    isActive: true,
-    description: 'Potongan besi konstruksi, plat besi tua, pipa dan logam scrap padat.',
-    minPrice: 4500,
-    maxPrice: 6200,
-    averagePrice: 5300,
-    totalRecyclers: 11,
-    updatedAt: '2026-11-08',
-  },
-];
+function normalizeCategory(raw: WasteCategory): AdminCategoryItem {
+  return {
+    id: raw.id,
+    name: raw.name,
+    slug: raw.slug,
+    unit: raw.unit,
+    description: raw.description || '',
+    icon: raw.icon,
+    isActive: Boolean(raw.isActive),
+    minPrice: Number(raw.minPrice ?? 0),
+    maxPrice: Number(raw.maxPrice ?? 0),
+    averagePrice: Number(raw.averagePrice ?? 0),
+    totalRecyclers: Number(raw.totalRecyclers ?? 0),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt ? raw.updatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+  };
+}
 
-export function useAdminCategories(initialData = INITIAL_CATEGORIES) {
-  const [categories, setCategories] = useState<AdminCategoryItem[]>(initialData);
+export function useAdminCategories() {
+  const [categories, setCategories] = useState<AdminCategoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<AdminCategoryItem | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<AdminCategoryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Toggle active status
-  const toggleActive = (id: string) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c))
-    );
-  };
-
-  // Save (Create or Update)
-  const saveCategory = (catData: Partial<AdminCategoryItem>) => {
-    if (editingCategory) {
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === editingCategory.id
-            ? ({
-                ...c,
-                ...catData,
-                updatedAt: new Date().toISOString().split('T')[0],
-              } as AdminCategoryItem)
-            : c
-        )
-      );
-    } else {
-      const newCat: AdminCategoryItem = {
-        id: `cat-${Date.now().toString().slice(-6)}`,
-        name: catData.name || 'Kategori Baru',
-        unit: catData.unit || 'kg',
-        isActive: true,
-        description: catData.description || '',
-        minPrice: catData.minPrice || 1000,
-        maxPrice: catData.maxPrice || 5000,
-        averagePrice: Math.round(((catData.minPrice || 1000) + (catData.maxPrice || 5000)) / 2),
-        totalRecyclers: 0,
-        updatedAt: new Date().toISOString().split('T')[0],
-      };
-      setCategories((prev) => [newCat, ...prev]);
+  const fetchCategories = useCallback(async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const res = await apiClient<WasteCategory[]>('/waste/categories/manage');
+      setCategories(Array.isArray(res) ? res.map(normalizeCategory) : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal memuat master kategori sampah.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsModalOpen(false);
-    setEditingCategory(null);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    apiClient<WasteCategory[]>('/waste/categories/manage')
+      .then((res) => {
+        if (!isMounted) return;
+        setCategories(Array.isArray(res) ? res.map(normalizeCategory) : []);
+        setError(null);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setError(err instanceof Error ? err.message : 'Gagal memuat master kategori sampah.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const notifyAdminChanged = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('admin-data-changed'));
+    }
   };
 
-  // Open modal for edit
+  const toggleActive = async (id: string) => {
+    const target = categories.find((c) => c.id === id);
+    if (!target) return;
+
+    const nextState = !target.isActive;
+    setActionError(null);
+    setSuccessMessage(null);
+    setCategories((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, isActive: nextState } : c)),
+    );
+
+    try {
+      const updated = await apiClient<WasteCategory>(`/waste/categories/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: nextState }),
+      });
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? normalizeCategory(updated) : c)),
+      );
+      setSuccessMessage(
+        `Kategori "${target.name}" berhasil ${nextState ? 'diaktifkan' : 'dinonaktifkan'}.`,
+      );
+      notifyAdminChanged();
+    } catch (err) {
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, isActive: !nextState } : c)),
+      );
+      setActionError(err instanceof Error ? err.message : 'Gagal memperbarui status kategori.');
+    }
+  };
+
+  const saveCategory = async (catData: {
+    name: string;
+    unit: string;
+    description?: string;
+    isActive?: boolean;
+  }) => {
+    setIsSaving(true);
+    setActionError(null);
+    setSuccessMessage(null);
+
+    try {
+      if (editingCategory) {
+        const updated = await apiClient<WasteCategory>(`/waste/categories/${editingCategory.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: catData.name,
+            unit: catData.unit,
+            description: catData.description ?? '',
+            isActive: catData.isActive ?? editingCategory.isActive,
+          }),
+        });
+        const normalized = normalizeCategory(updated);
+        setCategories((prev) =>
+          prev.map((c) => (c.id === editingCategory.id ? normalized : c)),
+        );
+        setSuccessMessage(`Kategori "${normalized.name}" berhasil diperbarui.`);
+      } else {
+        const created = await apiClient<WasteCategory>('/waste/categories', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: catData.name,
+            unit: catData.unit,
+            description: catData.description ?? '',
+            isActive: catData.isActive ?? true,
+          }),
+        });
+        const normalized = normalizeCategory(created);
+        setCategories((prev) => [normalized, ...prev]);
+        setSuccessMessage(`Kategori "${normalized.name}" berhasil ditambahkan.`);
+      }
+
+      setIsModalOpen(false);
+      setEditingCategory(null);
+      notifyAdminChanged();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Gagal menyimpan kategori master.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const openEdit = (cat: AdminCategoryItem) => {
+    setActionError(null);
     setEditingCategory(cat);
     setIsModalOpen(true);
   };
 
-  // Open modal for create
   const openCreate = () => {
+    setActionError(null);
     setEditingCategory(null);
     setIsModalOpen(true);
   };
 
-  // Delete / Archive
-  const deleteCategory = (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus kategori master ini dari sistem?')) {
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+  const requestDelete = (cat: AdminCategoryItem) => {
+    setActionError(null);
+    setDeletingCategory(cat);
+  };
+
+  const cancelDelete = () => {
+    if (isDeleting) return;
+    setDeletingCategory(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingCategory) return;
+    setIsDeleting(true);
+    setActionError(null);
+    setSuccessMessage(null);
+
+    const target = deletingCategory;
+    try {
+      await apiClient(`/waste/categories/${target.id}`, { method: 'DELETE' });
+      setCategories((prev) => prev.filter((c) => c.id !== target.id));
+      setDeletingCategory(null);
+      setSuccessMessage(`Kategori "${target.name}" berhasil dihapus.`);
+      notifyAdminChanged();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Gagal menghapus kategori.');
+      setDeletingCategory(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  // Filtered view
   const filteredCategories = categories.filter((c) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.unit.toLowerCase().includes(searchQuery.toLowerCase());
+      c.name.toLowerCase().includes(q) ||
+      c.unit.toLowerCase().includes(q) ||
+      (c.description || '').toLowerCase().includes(q);
     if (filterActive === 'active') return matchesSearch && c.isActive;
     if (filterActive === 'inactive') return matchesSearch && !c.isActive;
     return matchesSearch;
@@ -168,6 +225,13 @@ export function useAdminCategories(initialData = INITIAL_CATEGORIES) {
     allCategories: categories,
     activeCount: categories.filter((c) => c.isActive).length,
     totalCount: categories.length,
+    isLoading,
+    error,
+    isSaving,
+    actionError,
+    setActionError,
+    successMessage,
+    setSuccessMessage,
     searchQuery,
     setSearchQuery,
     filterActive,
@@ -175,11 +239,15 @@ export function useAdminCategories(initialData = INITIAL_CATEGORIES) {
     isModalOpen,
     setIsModalOpen,
     editingCategory,
+    deletingCategory,
+    isDeleting,
     openEdit,
     openCreate,
     saveCategory,
-    deleteCategory,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
     toggleActive,
+    refresh: fetchCategories,
   };
 }
-

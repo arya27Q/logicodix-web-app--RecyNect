@@ -195,6 +195,24 @@ export function useMatchingForm() {
       return;
     }
 
+    const validLatitude =
+      typeof geo.latitude === 'number' &&
+      !isNaN(geo.latitude) &&
+      geo.latitude >= -90 &&
+      geo.latitude <= 90;
+
+    const validLongitude =
+      typeof geo.longitude === 'number' &&
+      !isNaN(geo.longitude) &&
+      geo.longitude >= -180 &&
+      geo.longitude <= 180;
+
+    if (!validLatitude || !validLongitude) {
+      setIsSubmitting(false);
+      alert('Koordinat lokasi tidak valid. Mohon aktifkan GPS atau perbarui titik lokasi Anda.');
+      return;
+    }
+
     try {
       const result = await apiClient<{ sessionId: string }>('/matching', {
         method: 'POST',

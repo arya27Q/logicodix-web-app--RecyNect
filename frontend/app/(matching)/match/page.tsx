@@ -16,6 +16,8 @@ import {
   Lock,
   X,
   UserCheck,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function MatchPage() {
@@ -143,28 +145,79 @@ export default function MatchPage() {
                   <MapPin className="w-4 h-4 text-emerald-600" />
                   Titik Lokasi Keberangkatan Anda
                 </span>
-                {geo.locationSuccess && (
+                {geo.locationSuccess ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
                     <CheckCircle2 className="w-3 h-3" /> GPS Aktif
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                    Titik Default
                   </span>
                 )}
               </div>
 
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-                <p className="font-semibold text-slate-900">{geo.locationName}</p>
-                <p className="text-[11px] text-slate-500 tabular-nums">
-                  Latitude: {geo.latitude.toFixed(6)} • Longitude: {geo.longitude.toFixed(6)}
-                </p>
+              {/* Status & Koordinat */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold text-slate-900 leading-snug">{geo.locationName}</p>
+                  {geo.accuracy && (
+                    <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 tabular-nums">
+                      ±{geo.accuracy}m
+                    </span>
+                  )}
+                </div>
+                {geo.latitude !== null && geo.longitude !== null && (
+                  <p className="text-[11px] text-slate-500 tabular-nums font-mono">
+                    Lat: {geo.latitude.toFixed(6)} • Lng: {geo.longitude.toFixed(6)}
+                  </p>
+                )}
               </div>
 
+              {/* Error Alert Box jika GPS Gagal */}
+              {geo.error && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1.5">
+                  <div className="flex items-center gap-2 font-bold text-rose-900">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>GPS Tidak Terdeteksi</span>
+                  </div>
+                  <p className="text-[11px] text-rose-700 leading-relaxed">
+                    {geo.error}
+                  </p>
+                  <p className="text-[10px] text-slate-500 pt-1 border-t border-rose-200/60">
+                    Sistem sementara memakai titik simulasi agar Anda tetap bisa menguji perhitungan rute.
+                  </p>
+                </div>
+              )}
+
+              {/* Tombol Request GPS / Coba Lagi */}
               <button
                 type="button"
                 onClick={geo.requestLocation}
                 disabled={geo.isLocating}
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-semibold shadow-2xs hover:bg-slate-50 transition"
+                className={`w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold shadow-2xs transition active:scale-[0.99] ${
+                  geo.isLocating
+                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                    : geo.error
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300'
+                }`}
               >
-                <Navigation className={`w-3.5 h-3.5 text-sky-600 ${geo.isLocating ? 'animate-spin' : ''}`} />
-                <span>{geo.isLocating ? 'Mendeteksi Posisi Anda...' : 'Perbarui Lewat GPS Browser'}</span>
+                {geo.isLocating ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    <span>Mencari Sinyal GPS (Maks. 30 dtk)...</span>
+                  </>
+                ) : geo.error ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Coba Lagi Ambil GPS</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-3.5 h-3.5 text-sky-600" />
+                    <span>{geo.locationSuccess ? 'Perbarui Lokasi GPS' : 'Gunakan GPS Perangkat Saya'}</span>
+                  </>
+                )}
               </button>
 
               {/* Radius Pencarian */}

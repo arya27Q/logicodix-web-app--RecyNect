@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, ApiError } from '@/lib/api-client';
+import { useAuth } from '@/context/AuthContext';
 import {
   User,
   Mail,
@@ -78,8 +79,10 @@ const SAMPLE_HISTORY: HistoryItem[] = [
 
 export default function UserProfilePage() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'security'>('overview');
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [showSampleDemo, setShowSampleDemo] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [summary, setSummary] = useState({
@@ -114,6 +117,7 @@ export default function UserProfilePage() {
   useEffect(() => {
     let isMounted = true;
     const loadProfile = async () => {
+      setProfileLoadError(null);
       try {
         const user = await apiClient<{ id: string; name: string; email: string; phone?: string; role: string }>('/auth/me');
         if (isMounted) {
@@ -131,9 +135,16 @@ export default function UserProfilePage() {
 
           setIsLoadingUser(false);
         }
-      } catch {
+      } catch (err: unknown) {
         if (isMounted) {
-          router.replace('/login?redirect=/profile');
+          if (err instanceof ApiError && err.status === 401) {
+            router.replace('/login?redirect=/profile');
+          } else {
+            // Jangan redirect jika bukan 401 (misal 500 atau gangguan jaringan)
+            setIsLoadingUser(false);
+            const msg = err instanceof Error ? err.message : 'Gagal menghubungi server untuk memuat profil.';
+            setProfileLoadError(msg);
+          }
         }
       }
     };
@@ -168,17 +179,9 @@ export default function UserProfilePage() {
   }, [router]);
 
   const handleLogout = async () => {
-    try {
-      await apiClient('/auth/logout', { method: 'POST' });
-    } catch {
-      // Abaikan error saat logout
-    } finally {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('recynect-auth-changed'));
-      }
-      router.replace('/login');
-      router.refresh();
-    }
+    await logout();
+    router.replace('/login');
+    router.refresh();
   };
 
   const getInitials = (fullName: string) => {
@@ -263,6 +266,36 @@ export default function UserProfilePage() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-slate-500">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         <p className="text-sm font-semibold">Memuat profil akun Anda...</p>
+      </div>
+    );
+  }
+
+  if (profileLoadError) {
+    return (
+      <div className="max-w-xl mx-auto my-16 p-8 bg-white rounded-3xl border border-rose-200 shadow-sm text-center space-y-4">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-slate-900">Gagal Memuat Profil</h2>
+          <p className="text-xs text-slate-600">{profileLoadError}</p>
+        </div>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
+          >
+            Coba Lagi
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/login')}
+            className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition"
+          >
+            Ke Halaman Login
+          </button>
+        </div>
       </div>
     );
   }

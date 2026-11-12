@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/context/AuthContext';
 import {
   Recycle,
   ArrowRight,
@@ -13,17 +13,9 @@ import {
   LogOut,
 } from 'lucide-react';
 
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: 'user' | 'recycler' | 'admin';
-}
-
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const { user: currentUser, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -34,47 +26,10 @@ export const Navbar: React.FC = () => {
     { href: '/categories', label: 'Kategori Sampah' },
   ];
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSession = async () => {
-      try {
-        const user = await apiClient<AuthUser>('/auth/me');
-        if (isMounted) {
-          // Web publik ini murni POV Warga. Hanya aktifkan sesi jika role adalah 'user' (Warga).
-          if (user && user.role === 'user') {
-            setCurrentUser(user);
-          } else {
-            setCurrentUser(null);
-          }
-        }
-      } catch {
-        if (isMounted) setCurrentUser(null);
-      }
-    };
-
-    fetchSession();
-
-    const handleAuthEvent = () => fetchSession();
-    window.addEventListener('recynect-auth-changed', handleAuthEvent);
-    return () => {
-      isMounted = false;
-      window.removeEventListener('recynect-auth-changed', handleAuthEvent);
-    };
-  }, [pathname]);
-
   const handleLogout = async () => {
-    try {
-      await apiClient('/auth/logout', { method: 'POST' });
-    } catch {
-      // Abaikan error jaringan saat logout
-    } finally {
-      setCurrentUser(null);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('recynect-auth-changed'));
-      }
-      router.replace('/login');
-      router.refresh();
-    }
+    await logout();
+    router.replace('/login');
+    router.refresh();
   };
 
   const getInitials = (fullName: string) => {

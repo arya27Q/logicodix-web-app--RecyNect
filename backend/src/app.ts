@@ -20,6 +20,7 @@ app.use(cors({
       !origin ||
       ENV.FRONTEND_ORIGINS.includes(origin) ||
       origin.endsWith('.vercel.app') ||
+      origin.endsWith('.hostingersite.com') ||
       origin.includes('localhost')
     ) {
       callback(null, true);

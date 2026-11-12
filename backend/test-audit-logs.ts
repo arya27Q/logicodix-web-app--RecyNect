@@ -67,3 +67,4 @@ main().catch((err) => {
   console.error('Audit log test failed:', err);
   process.exit(1);
 });
+

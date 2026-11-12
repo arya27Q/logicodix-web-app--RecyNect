@@ -10,3 +10,4 @@ const controller = new AuditLogController();
 router.get('/', authMiddleware, roleMiddleware('admin'), controller.getLogs);
 
 export default router;
+

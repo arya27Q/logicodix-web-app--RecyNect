@@ -21,3 +21,4 @@ export class AuditLogController {
     return sendSuccess(res, result, 'Berhasil memuat data audit log aktivitas');
   };
 }
+

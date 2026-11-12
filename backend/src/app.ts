@@ -36,7 +36,16 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check
+// Root & Health Check
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    name: 'RecyNect Backend API',
+    status: 'online',
+    version: '1.0.0',
+    health: '/api/health',
+  });
+});
+
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });

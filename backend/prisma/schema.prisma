@@ -1,12 +1,13 @@
 // Prisma Schema untuk RecyNect
-// Database Engine: MySQL
+// Database Engine: PostgreSQL (Supabase / Production Ready)
 // Menampung 10 Pilar Fitur Utama (Direktori Pengelola, Info Sampah, Info Harga,
 // Minimum Setoran, Perbandingan Harga, Multi-Input Sampah, Matching Persyaratan,
 // Optimasi Multi-Pengelola, Ranking Multi-Kriteria, dan Dashboard Pengelola/Admin)
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {

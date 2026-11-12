@@ -14,8 +14,8 @@ async function main() {
   } catch {
     throw new Error('DATABASE_URL tidak valid.');
   }
-  if (!['localhost', '127.0.0.1', '::1'].includes(databaseHost)) {
-    throw new Error('Seed demo hanya boleh dijalankan terhadap database lokal.');
+  if (!['localhost', '127.0.0.1', '::1'].includes(databaseHost) && process.env.ALLOW_REMOTE_SEED !== 'true') {
+    throw new Error('Seed demo hanya boleh dijalankan terhadap database lokal. (Atur ALLOW_REMOTE_SEED=true di .env jika ingin seed database cloud/Supabase).');
   }
   if (process.env.RESET_DATABASE !== 'true') {
     throw new Error('Seed ini menghapus data; set RESET_DATABASE=true hanya pada database development yang aman.');

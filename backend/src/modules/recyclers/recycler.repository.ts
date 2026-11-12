@@ -427,33 +427,33 @@ export class RecyclerRepository {
 
   public async getIncomingDeliveries(recyclerId: string) {
     try {
-      const rows = await db.$queryRawUnsafe<any[]>(
-        `SELECT * FROM incoming_deliveries WHERE recycler_id = ? ORDER BY created_at DESC`,
-        recyclerId
-      );
+      const rows = await db.incomingDelivery.findMany({
+        where: { recyclerId },
+        orderBy: { createdAt: 'desc' },
+      });
 
       return rows.map((r) => {
         let materials: any[] = [];
         try {
-          materials = JSON.parse(r.materials_summary || '[]');
+          materials = JSON.parse(r.materialsSummary || '[]');
         } catch {
           materials = [];
         }
 
         return {
-          id: r.delivery_code || r.id,
+          id: r.deliveryCode || r.id,
           internalId: r.id,
-          citizenName: r.citizen_name,
-          citizenPhone: r.citizen_phone,
+          citizenName: r.citizenName,
+          citizenPhone: r.citizenPhone,
           materials,
-          totalEstimatedWeight: r.total_estimated_weight,
-          estimatedPayoutRp: Number(r.estimated_payout_rp),
-          actualWeight: r.actual_weight !== null ? Number(r.actual_weight) : null,
-          actualPayoutRp: r.actual_payout_rp !== null ? Number(r.actual_payout_rp) : null,
-          arrivalTime: r.arrival_time,
+          totalEstimatedWeight: r.totalEstimatedWeight,
+          estimatedPayoutRp: Number(r.estimatedPayoutRp),
+          actualWeight: r.actualWeight !== null ? Number(r.actualWeight) : null,
+          actualPayoutRp: r.actualPayoutRp !== null ? Number(r.actualPayoutRp) : null,
+          arrivalTime: r.arrivalTime,
           status: r.status,
           notes: r.notes || '',
-          createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+          createdAt: r.createdAt ? r.createdAt.toISOString() : new Date().toISOString(),
         };
       });
     } catch (err) {
@@ -468,50 +468,45 @@ export class RecyclerRepository {
     actualPayoutRp?: number;
     notes?: string;
   }) {
-    const status = data.status;
-    const actualWeight = data.actualWeight !== undefined ? data.actualWeight : null;
-    const actualPayoutRp = data.actualPayoutRp !== undefined ? data.actualPayoutRp : null;
-    const notes = data.notes !== undefined ? data.notes : null;
+    const existing = await db.incomingDelivery.findFirst({
+      where: {
+        OR: [{ id }, { deliveryCode: id }],
+        recyclerId,
+      },
+    });
 
-    await db.$executeRawUnsafe(
-      `UPDATE incoming_deliveries 
-       SET status = ?, 
-           actual_weight = COALESCE(?, actual_weight),
-           actual_payout_rp = COALESCE(?, actual_payout_rp),
-           notes = COALESCE(?, notes),
-           updated_at = NOW(3)
-       WHERE (id = ? OR delivery_code = ?) AND recycler_id = ?`,
-      status, actualWeight, actualPayoutRp, notes, id, id, recyclerId
-    );
-
-    const updated = await db.$queryRawUnsafe<any[]>(
-      `SELECT * FROM incoming_deliveries WHERE (id = ? OR delivery_code = ?) AND recycler_id = ? LIMIT 1`,
-      id, id, recyclerId
-    );
-
-    if (!updated || updated.length === 0) {
+    if (!existing) {
       throw new Error('Data setoran tidak ditemukan.');
     }
 
-    const r = updated[0];
+    const r = await db.incomingDelivery.update({
+      where: { id: existing.id },
+      data: {
+        status: data.status,
+        ...(data.actualWeight !== undefined && data.actualWeight !== null ? { actualWeight: data.actualWeight } : {}),
+        ...(data.actualPayoutRp !== undefined && data.actualPayoutRp !== null ? { actualPayoutRp: data.actualPayoutRp } : {}),
+        ...(data.notes !== undefined && data.notes !== null ? { notes: data.notes } : {}),
+      },
+    });
+
     let materials: any[] = [];
     try {
-      materials = JSON.parse(r.materials_summary || '[]');
+      materials = JSON.parse(r.materialsSummary || '[]');
     } catch {
       materials = [];
     }
 
     return {
-      id: r.delivery_code || r.id,
+      id: r.deliveryCode || r.id,
       internalId: r.id,
-      citizenName: r.citizen_name,
-      citizenPhone: r.citizen_phone,
+      citizenName: r.citizenName,
+      citizenPhone: r.citizenPhone,
       materials,
-      totalEstimatedWeight: r.total_estimated_weight,
-      estimatedPayoutRp: Number(r.estimated_payout_rp),
-      actualWeight: r.actual_weight !== null ? Number(r.actual_weight) : null,
-      actualPayoutRp: r.actual_payout_rp !== null ? Number(r.actual_payout_rp) : null,
-      arrivalTime: r.arrival_time,
+      totalEstimatedWeight: r.totalEstimatedWeight,
+      estimatedPayoutRp: Number(r.estimatedPayoutRp),
+      actualWeight: r.actualWeight !== null ? Number(r.actualWeight) : null,
+      actualPayoutRp: r.actualPayoutRp !== null ? Number(r.actualPayoutRp) : null,
+      arrivalTime: r.arrivalTime,
       status: r.status,
       notes: r.notes || '',
     };
@@ -519,11 +514,11 @@ export class RecyclerRepository {
 
   public async getDashboardStats(recyclerId: string) {
     try {
-      // 1. Ambil seluruh transaksi setoran warga untuk pengelola ini secara riil dari database MySQL
-      const deliveries = await db.$queryRawUnsafe<any[]>(
-        `SELECT * FROM incoming_deliveries WHERE recycler_id = ? ORDER BY created_at DESC`,
-        recyclerId
-      );
+      // 1. Ambil seluruh transaksi setoran warga untuk pengelola ini secara riil dari database (Database Agnostic)
+      const deliveries = await db.incomingDelivery.findMany({
+        where: { recyclerId },
+        orderBy: { createdAt: 'desc' },
+      });
 
       const completed = deliveries.filter((d) => d.status === 'selesai');
       const pending = deliveries.filter((d) => d.status === 'antre' || d.status === 'timbang');
@@ -537,18 +532,18 @@ export class RecyclerRepository {
 
       for (const d of deliveries) {
         let weight = 0;
-        if (d.actual_weight !== null && Number(d.actual_weight) > 0) {
-          weight = Number(d.actual_weight);
-        } else if (d.total_estimated_weight) {
-          const parsed = parseFloat(String(d.total_estimated_weight).replace(/[^0-9.]/g, ''));
+        if (d.actualWeight !== null && Number(d.actualWeight) > 0) {
+          weight = Number(d.actualWeight);
+        } else if (d.totalEstimatedWeight) {
+          const parsed = parseFloat(String(d.totalEstimatedWeight).replace(/[^0-9.]/g, ''));
           if (!isNaN(parsed) && parsed > 0) weight = parsed;
         }
 
         let payout = 0;
-        if (d.actual_payout_rp !== null && Number(d.actual_payout_rp) > 0) {
-          payout = Number(d.actual_payout_rp);
-        } else if (d.estimated_payout_rp) {
-          payout = Number(d.estimated_payout_rp);
+        if (d.actualPayoutRp !== null && Number(d.actualPayoutRp) > 0) {
+          payout = Number(d.actualPayoutRp);
+        } else if (d.estimatedPayoutRp) {
+          payout = Number(d.estimatedPayoutRp);
         }
 
         // Hanya transaksi yang berstatus 'selesai' yang dihitung ke sampah terserap & pembayaran riil
@@ -557,14 +552,14 @@ export class RecyclerRepository {
           completedPayoutRp += payout;
 
           // Petakan ke hari dalam minggu (0 = Minggu, 1 = Senin, ..., 6 = Sabtu)
-          const dateObj = d.created_at ? new Date(d.created_at) : new Date();
+          const dateObj = d.createdAt ? new Date(d.createdAt) : new Date();
           const dayIdx = dateObj.getDay();
           dayAddedWeightKg[dayIdx] = (dayAddedWeightKg[dayIdx] || 0) + weight;
           dayAddedPayoutRp[dayIdx] = (dayAddedPayoutRp[dayIdx] || 0) + payout;
 
-          // Breakdown per jenis material riil dari JSON materials_summary
+          // Breakdown per jenis material riil dari JSON materialsSummary
           try {
-            const items = JSON.parse(d.materials_summary || '[]');
+            const items = JSON.parse(d.materialsSummary || '[]');
             if (Array.isArray(items)) {
               for (const item of items) {
                 const mName = String(item.name || '').toLowerCase();

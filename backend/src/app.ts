@@ -5,6 +5,7 @@ import wasteRoutes from './modules/waste/waste.routes.js';
 import recyclerRoutes from './modules/recyclers/recycler.routes.js';
 import matchingRoutes from './modules/matching/matching.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import auditLogRoutes from './modules/audit-logs/audit-log.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { ENV } from './config/env.js';
 import { HttpError } from './utils/http-error.js';
@@ -61,6 +62,7 @@ app.use('/api/waste', wasteRoutes);
 app.use('/api/recyclers', recyclerRoutes);
 app.use('/api/matching', matchingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

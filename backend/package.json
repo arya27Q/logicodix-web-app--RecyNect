@@ -15,7 +15,8 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "seed:categories": "tsx prisma/seed-categories.ts",
     "admin:create": "tsx prisma/create-admin.ts",
-    "test:matching": "tsx test-matching-direct.ts"
+    "test:matching": "tsx test-matching-direct.ts",
+    "test:audit": "tsx test-audit-logs.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

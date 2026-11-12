@@ -3,6 +3,8 @@ import { AdminService } from './admin.service.js';
 import { clearSessionCookie, setSessionCookie } from '../../security/session.js';
 import { clearRateLimit } from '../../middlewares/rate-limit.middleware.js';
 import { sendSuccess } from '../../utils/api-response.js';
+import { createAuditLog } from '../audit-logs/audit-log.service.js';
+import { AUDIT_ACTIONS } from '../audit-logs/audit-log.types.js';
 
 function parseBoundedInt(value: unknown, fallback: number, min: number, max: number): number {
   const num = Number(value);
@@ -14,10 +16,28 @@ export class AdminController {
   private readonly adminService = new AdminService();
 
   public login = async (req: Request, res: Response) => {
-    const result = await this.adminService.login(req.body);
-    clearRateLimit(req.ip || req.socket.remoteAddress);
-    setSessionCookie(res, result.token);
-    return sendSuccess(res, result.admin, 'Login administrator berhasil');
+    try {
+      const result = await this.adminService.login(req.body);
+      clearRateLimit(req.ip || req.socket.remoteAddress);
+      setSessionCookie(res, result.token);
+      await createAuditLog({
+        req,
+        userId: result.admin.id,
+        action: AUDIT_ACTIONS.LOGIN_SUCCESS,
+        entity: 'Admin',
+        entityId: result.admin.id,
+        metadata: { email: result.admin.email, role: 'admin' },
+      });
+      return sendSuccess(res, result.admin, 'Login administrator berhasil');
+    } catch (err: any) {
+      await createAuditLog({
+        req,
+        action: AUDIT_ACTIONS.LOGIN_FAILED,
+        entity: 'Admin',
+        metadata: { email: req.body?.email, reason: err.message || 'Login admin gagal' },
+      });
+      throw err;
+    }
   };
 
   public getProfile = async (req: Request, res: Response) => {
@@ -29,12 +49,27 @@ export class AdminController {
   public updateProfile = async (req: Request, res: Response) => {
     if (!req.auth) return res.status(401).json({ status: 'error', message: 'Autentikasi diperlukan.' });
     const updated = await this.adminService.updateProfile(req.auth.sub, req.body);
+    await createAuditLog({
+      req,
+      userId: req.auth.sub,
+      action: AUDIT_ACTIONS.PROFILE_UPDATED,
+      entity: 'Admin',
+      entityId: req.auth.sub,
+      metadata: { fields: Object.keys(req.body) },
+    });
     return sendSuccess(res, updated, 'Profil administrator berhasil diperbarui');
   };
 
   public changePassword = async (req: Request, res: Response) => {
     if (!req.auth) return res.status(401).json({ status: 'error', message: 'Autentikasi diperlukan.' });
     await this.adminService.changePassword(req.auth.sub, req.body.currentPassword, req.body.newPassword);
+    await createAuditLog({
+      req,
+      userId: req.auth.sub,
+      action: AUDIT_ACTIONS.PASSWORD_CHANGED,
+      entity: 'Admin',
+      entityId: req.auth.sub,
+    });
     clearSessionCookie(res, 'admin');
     return sendSuccess(res, null, 'Kata sandi administrator berhasil diperbarui. Silakan masuk kembali.');
   };
@@ -62,11 +97,27 @@ export class AdminController {
 
   public verifyRecycler = async (req: Request, res: Response) => {
     const result = await this.adminService.verifyRecycler(req.params.id as string, req.body.status);
+    await createAuditLog({
+      req,
+      userId: req.auth?.sub,
+      action: AUDIT_ACTIONS.RECYCLER_VERIFIED,
+      entity: 'Recycler',
+      entityId: req.params.id as string,
+      metadata: { status: req.body.status },
+    });
     return sendSuccess(res, result, 'Status verifikasi pengelola berhasil diperbarui');
   };
 
   public updateRecyclerStatus = async (req: Request, res: Response) => {
     const result = await this.adminService.updateRecyclerFlags(req.params.id as string, req.body);
+    await createAuditLog({
+      req,
+      userId: req.auth?.sub,
+      action: AUDIT_ACTIONS.RECYCLER_STATUS_UPDATED,
+      entity: 'Recycler',
+      entityId: req.params.id as string,
+      metadata: req.body,
+    });
     return sendSuccess(res, result, 'Status operasional pengelola berhasil diperbarui');
   };
 

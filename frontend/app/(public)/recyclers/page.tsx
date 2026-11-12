@@ -75,6 +75,17 @@ const DEMO_RECYCLERS: RecyclerPreview[] = [
   },
 ];
 
+interface ApiRecyclerListItem {
+  id: string;
+  name: string;
+  managementType?: ManagementType;
+  address?: string;
+  contact?: string;
+  materials?: Array<{ category?: { name?: string } }>;
+  verificationStatus?: string;
+  operatingHours?: string;
+}
+
 export default function RecyclersPage() {
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -82,7 +93,7 @@ export default function RecyclersPage() {
 
   useEffect(() => {
     let isMounted = true;
-    apiClient<any[]>('/recyclers')
+    apiClient<ApiRecyclerListItem[]>('/recyclers')
       .then((data) => {
         if (!isMounted || !Array.isArray(data) || data.length === 0) return;
         const typeLabelMap: Record<string, string> = {
@@ -94,14 +105,14 @@ export default function RecyclersPage() {
         const mapped: RecyclerPreview[] = data.map((r) => ({
           id: r.id,
           name: r.name,
-          type: r.managementType || 'pengepul',
-          typeLabel: typeLabelMap[r.managementType] || 'Pengepul Berizin',
+          type: (r.managementType as ManagementType) || 'pengepul',
+          typeLabel: typeLabelMap[r.managementType || ''] || 'Pengepul Berizin',
           address: r.address || 'Alamat operasional',
           contact: r.contact || '-',
           distanceKm: 0,
           materialsCount: r.materials?.length || 0,
           sampleMaterials: Array.isArray(r.materials)
-            ? r.materials.map((m: any) => m.category?.name || 'Material').slice(0, 4)
+            ? r.materials.map((m) => m.category?.name || 'Material').slice(0, 4)
             : [],
           isVerified: r.verificationStatus === 'verified',
           hours: r.operatingHours || 'Senin - Sabtu (08:00 - 17:00)',

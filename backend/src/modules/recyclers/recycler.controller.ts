@@ -3,6 +3,8 @@ import { RecyclerService } from './recycler.service.js';
 import { sendSuccess } from '../../utils/api-response.js';
 import { HttpError } from '../../utils/http-error.js';
 import { db } from '../../config/database.js';
+import { createAuditLog } from '../audit-logs/audit-log.service.js';
+import { AUDIT_ACTIONS } from '../audit-logs/audit-log.types.js';
 
 export class RecyclerController {
   private recyclerService: RecyclerService;
@@ -54,6 +56,25 @@ export class RecyclerController {
       qualityRequirements,
       isAvailable,
     });
+
+    await createAuditLog({
+      req,
+      userId,
+      action: AUDIT_ACTIONS.MATERIAL_CREATED,
+      entity: 'RecyclerMaterial',
+      entityId: (created as any)?.id,
+      metadata: { price: Number(price), unit, categoryId: (created as any)?.categoryId },
+    });
+
+    await createAuditLog({
+      req,
+      userId,
+      action: AUDIT_ACTIONS.PRICE_HISTORY_CREATED,
+      entity: 'PriceHistory',
+      entityId: (created as any)?.id,
+      metadata: { newPrice: Number(price), unit },
+    });
+
     return sendSuccess(res, created, 'Berhasil menambahkan material baru ke katalog', 201);
   };
 
@@ -73,6 +94,27 @@ export class RecyclerController {
       qualityRequirements,
       isAvailable,
     });
+
+    await createAuditLog({
+      req,
+      userId,
+      action: AUDIT_ACTIONS.MATERIAL_UPDATED,
+      entity: 'RecyclerMaterial',
+      entityId: materialId,
+      metadata: { price, unit, isAvailable },
+    });
+
+    if (price !== undefined) {
+      await createAuditLog({
+        req,
+        userId,
+        action: AUDIT_ACTIONS.PRICE_HISTORY_CREATED,
+        entity: 'PriceHistory',
+        entityId: materialId,
+        metadata: { newPrice: Number(price) },
+      });
+    }
+
     return sendSuccess(res, updated, 'Berhasil memperbarui ketentuan material');
   };
 
@@ -83,6 +125,15 @@ export class RecyclerController {
     }
     const materialId = req.params.id as string;
     await this.recyclerService.deleteMaterial(userId, materialId);
+
+    await createAuditLog({
+      req,
+      userId,
+      action: AUDIT_ACTIONS.MATERIAL_DELETED,
+      entity: 'RecyclerMaterial',
+      entityId: materialId,
+    });
+
     return sendSuccess(res, { id: materialId }, 'Material berhasil dihapus dari ketentuan penerimaan');
   };
 
@@ -118,6 +169,16 @@ export class RecyclerController {
       actualPayoutRp: actualPayoutRp !== undefined ? Number(actualPayoutRp) : undefined,
       notes,
     });
+
+    await createAuditLog({
+      req,
+      userId,
+      action: AUDIT_ACTIONS.DELIVERY_UPDATED,
+      entity: 'IncomingDelivery',
+      entityId: deliveryId,
+      metadata: { status, actualWeight, actualPayoutRp },
+    });
+
     return sendSuccess(res, updated, 'Status setoran berhasil diperbarui');
   };
 
@@ -165,6 +226,19 @@ export class RecyclerController {
       estimatedPayoutRp: Number(estimatedPayoutRp || 0),
       arrivalTime: arrivalTime || 'Hari Ini',
       notes,
+    });
+
+    await createAuditLog({
+      req,
+      userId: citizenId || null,
+      action: AUDIT_ACTIONS.DELIVERY_CREATED,
+      entity: 'IncomingDelivery',
+      entityId: (created as any)?.id || (created as any)?.deliveryCode,
+      metadata: {
+        deliveryCode: (created as any)?.deliveryCode,
+        recyclerId,
+        estimatedPayoutRp: Number(estimatedPayoutRp || 0),
+      },
     });
 
     return sendSuccess(res, created, 'Jadwal setoran berhasil dikonfirmasi ke pengelola gudang', 201);

@@ -72,6 +72,7 @@ export function useMatchingForm() {
     if (urlCatId) {
       const found = categories.find((c) => c.id === urlCatId) || FALLBACK_CATEGORIES.find((c) => c.id === urlCatId);
       if (found) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems([
           {
             categoryId: found.id,

@@ -260,6 +260,30 @@ const RECYCLERS_DATA: Record<string, RecyclerDetail> = {
   },
 };
 
+interface ApiMaterial {
+  id?: string;
+  categoryId?: string;
+  name?: string;
+  category?: { name?: string };
+  price?: number;
+  unit?: string;
+  minQuantity?: number;
+  qualityRequirements?: string;
+  isAvailable?: boolean;
+}
+
+interface ApiRecyclerData {
+  id: string;
+  name: string;
+  managementType: string;
+  verificationStatus: string;
+  address?: string;
+  contact?: string;
+  operatingHours?: string;
+  description?: string;
+  materials?: ApiMaterial[];
+}
+
 async function RecyclerDetailContent({
   params,
 }: {
@@ -268,13 +292,15 @@ async function RecyclerDetailContent({
   const { id } = await params;
 
   // Coba ambil data riil dari backend API terlebih dahulu
-  let apiRecycler: any = null;
+  let apiRecycler: ApiRecyclerData | null = null;
   try {
-    const res = await fetch(`http://localhost:5000/api/recyclers/${id}`, { cache: 'no-store' });
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:5000/api';
+    const cleanBase = apiBase.replace(/\/$/, '');
+    const res = await fetch(`${cleanBase}/recyclers/${id}`, { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
       if (json.status === 'success' && json.data) {
-        apiRecycler = json.data;
+        apiRecycler = json.data as ApiRecyclerData;
       }
     }
   } catch {
@@ -291,28 +317,28 @@ async function RecyclerDetailContent({
   // Lookup data pengelola berdasarkan API atau fallback DEMO data
   const recycler: RecyclerDetail = apiRecycler
     ? {
-        id: apiRecycler.id,
-        name: apiRecycler.name,
-        type: typeLabelMap[apiRecycler.managementType] || 'Pengepul Berizin',
+        id: String(apiRecycler.id),
+        name: String(apiRecycler.name),
+        type: typeLabelMap[String(apiRecycler.managementType)] || 'Pengepul Berizin',
         badge: apiRecycler.verificationStatus === 'verified' ? 'Mitra Terverifikasi Resmi' : 'Mitra Terdaftar',
-        address: apiRecycler.address || 'Alamat operasional',
-        contact: apiRecycler.contact || '-',
-        operatingHours: apiRecycler.operatingHours || 'Senin - Sabtu (08:00 - 17:00)',
+        address: String(apiRecycler.address || 'Alamat operasional'),
+        contact: String(apiRecycler.contact || '-'),
+        operatingHours: String(apiRecycler.operatingHours || 'Senin - Sabtu (08:00 - 17:00)'),
         verifiedDate: 'Terverifikasi 2026',
         vehicleAccess: 'Akses Motor, Gerobak, Mobil Pick-up & Truk',
         description:
-          apiRecycler.description ||
-          'Fasilitas pengolahan sampah daur ulang mitra resmi RecyNect dengan komitmen penimbangan adil dan transparansi harga beli.',
+          String(apiRecycler.description ||
+          'Fasilitas pengolahan sampah daur ulang mitra resmi RecyNect dengan komitmen penimbangan adil dan transparansi harga beli.'),
         paymentMethods: 'Pembayaran tunai langsung di tempat setelah penimbangan atau transfer instan.',
         materials: Array.isArray(apiRecycler.materials)
-          ? apiRecycler.materials.map((m: any) => ({
-              categoryId: m.categoryId || m.id,
-              name: m.category?.name || m.name || 'Material Daur Ulang',
-              category: m.category?.name || 'Material',
+          ? apiRecycler.materials.map((m) => ({
+              categoryId: String(m.categoryId || m.id),
+              name: String(m.category?.name || m.name || 'Material Daur Ulang'),
+              category: String(m.category?.name || 'Material'),
               price: Number(m.price || 0),
-              unit: m.unit || 'kg',
+              unit: String(m.unit || 'kg'),
               minQty: Number(m.minQuantity || 1),
-              requirements: m.qualityRequirements || 'Bersih dan terpilah rapi.',
+              requirements: String(m.qualityRequirements || 'Bersih dan terpilah rapi.'),
               isAvailable: m.isAvailable !== false,
             }))
           : [],

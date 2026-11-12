@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { MatchingService } from './services/matching.service.js';
 import { sendError, sendSuccess } from '../../utils/api-response.js';
+import { createAuditLog } from '../audit-logs/audit-log.service.js';
+import { AUDIT_ACTIONS } from '../audit-logs/audit-log.types.js';
 
 export class MatchingController {
   private matchingService: MatchingService;
@@ -10,8 +12,21 @@ export class MatchingController {
   }
 
   public runMatching = async (req: Request, res: Response) => {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.id || req.auth?.sub || null;
     const result = await this.matchingService.executeMatching(req.body, userId);
+    await createAuditLog({
+      req,
+      userId,
+      action: AUDIT_ACTIONS.MATCHING_CREATED,
+      entity: 'MatchingSession',
+      entityId: result.sessionId,
+      metadata: {
+        priority: result.priority,
+        searchRadiusKm: result.searchRadiusKm,
+        itemsCount: req.body?.items?.length || 0,
+        alternativesCount: result.alternatives?.length || 0,
+      },
+    });
     return sendSuccess(res, result, 'Pencocokan berhasil dilakukan');
   };
 

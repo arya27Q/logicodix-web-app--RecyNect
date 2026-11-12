@@ -1,6 +1,8 @@
 import app from './app.js';
 import { ENV } from './config/env.js';
 
-app.listen(ENV.PORT, () => {
-  console.log(`Server RecyNect berjalan di port ${ENV.PORT}`);
+const HOST = '0.0.0.0';
+
+app.listen(ENV.PORT, HOST, () => {
+  console.log(`Server RecyNect berjalan di http://${HOST}:${ENV.PORT}`);
 });

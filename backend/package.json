@@ -13,6 +13,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "seed:categories": "tsx prisma/seed-categories.ts",
     "admin:create": "tsx prisma/create-admin.ts",
     "test:matching": "tsx test-matching-direct.ts"
   },
